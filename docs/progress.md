@@ -14,7 +14,7 @@ post-fases; ver «Actualizaciones posteriores» al final).
 | F5b Multipantalla | completada salvo piloto | T-43…T-48 completadas; T-42 sigue en `[STOP]` y T-49 espera el resultado del piloto |
 | F6 Cierre v1 | completada salvo STOP | T-33…T-37 completadas; T-38 requiere aceptación manual en red real |
 | F8 CR-01 (specs/10) | completada salvo STOP/opcional | T-50…T-62 completadas; T-63 espera carga real y T-64 no se ha solicitado |
-| F9 CR-02 GLPI (specs/11) | en curso | T-69…T-74 hechas (sync worker, modelo, cliente, lugares); siguen T-75…T-83 |
+| F9 CR-02 GLPI (specs/11) | completada salvo STOP/pendientes | T-69…T-78, T-81 y T-83 hechas; T-79 (retirar OCS, tras 2 semanas de validación) y T-80 [STOP] (corte) pendientes; T-82 (P2) no solicitada |
 
 ### Reconciliación CR-02 (T-69)
 | Tarea previa | Estado | Delta por CR-02 |
@@ -25,7 +25,7 @@ post-fases; ver «Actualizaciones posteriores» al final).
 | T-19/T-21/T-22 (mapper y sync OCS) | vigentes hasta T-79 | Conviven con el sync GLPI; GLPI prevalece por `glpiId` |
 
 ## Verificación
-- `npm run verify` en verde (ESLint + typecheck de todos los workspaces + **136 tests**).
+- `npm run verify` en verde (ESLint + typecheck de todos los workspaces + **149 tests**).
 - Asistencia remota validada en navegador real (Chromium + servidor RFB falso): el visor alcanza
   `conectado` (corregido el envoltorio de `window.WebSocket` que rompía las constantes y el
   prototipo que inspecciona noVNC) y el modo nativo devuelve `tightvnc://ip:puerto` con un solo

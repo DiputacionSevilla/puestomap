@@ -19,7 +19,7 @@ export function Header({
       <GlobalSearch />
       <div className="ml-auto hidden items-center gap-3 text-xs text-muted-foreground lg:flex">
         <span title="Última sincronización con OCS">
-          OCS: {formatRelative(lastOcsSync)}
+          GLPI: {formatRelative(lastOcsSync)}
         </span>
         <span title="Último sondeo de red">Sondeo: {formatRelative(lastProbe)}</span>
       </div>

@@ -15,7 +15,7 @@ export default async function AppLayout({
   const prisma = getPrisma();
   const [lastOcsRun, lastProbe] = await Promise.all([
     prisma.syncRun.findFirst({
-      where: { type: "OCS", status: { not: "RUNNING" } },
+      where: { type: { in: ["GLPI", "OCS"] }, status: { not: "RUNNING" } },
       orderBy: { finishedAt: "desc" },
       select: { finishedAt: true },
     }),

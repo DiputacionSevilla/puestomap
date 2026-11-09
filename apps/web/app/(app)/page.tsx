@@ -1,3 +1,6 @@
+import { Donut } from "@/components/dashboard/donut";
+import { KpiTile, type KpiTone } from "@/components/dashboard/kpi-tile";
+import { CheckCircle2, Download, History, MapPinOff, Monitor, Monitor as Monitors, PlugZap, PowerOff, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { getPrisma } from "@puestomap/db";
 import {
@@ -86,15 +89,15 @@ export default async function HomePage() {
     },
   });
 
-  const kpis: { label: string; value: number; href: string }[] = [
-    { label: "Total equipos", value: total, href: "/equipos" },
-    { label: "Listos", value: ready, href: "/equipos?state=READY" },
-    { label: "Sin VNC", value: notListening, href: "/equipos?state=NOT_LISTENING" },
-    { label: "Sin instalar", value: notInstalled, href: "/equipos?state=NOT_INSTALLED" },
-    { label: "Apagados / sin datos", value: offlineOrUnknown, href: "/equipos?state=OFFLINE,UNKNOWN" },
-    { label: "Sin ubicar", value: unplaced, href: "/equipos?unplaced=true" },
-    { label: "No vistos en OCS > 30 d", value: staleOcs, href: "/equipos?staleOcs=true" },
-    { label: "Multipantalla pendiente", value: multiPending, href: "/equipos?multiPending=true" },
+  const kpis: { label: string; value: number; href: string; icon: LucideIcon; tone: KpiTone }[] = [
+    { label: "Total equipos", value: total, href: "/equipos", icon: Monitor, tone: "teal" },
+    { label: "Listos", value: ready, href: "/equipos?state=READY", icon: CheckCircle2, tone: "green" },
+    { label: "Sin VNC", value: notListening, href: "/equipos?state=NOT_LISTENING", icon: PlugZap, tone: "amber" },
+    { label: "Sin instalar", value: notInstalled, href: "/equipos?state=NOT_INSTALLED", icon: Download, tone: "red" },
+    { label: "Apagados / sin datos", value: offlineOrUnknown, href: "/equipos?state=OFFLINE,UNKNOWN", icon: PowerOff, tone: "slate" },
+    { label: "Sin colocar", value: unplaced, href: "/equipos?unplaced=true", icon: MapPinOff, tone: "blue" },
+    { label: "Sin inventario > 30 d", value: staleOcs, href: "/equipos?staleOcs=true", icon: History, tone: "red" },
+    { label: "Multipantalla pendiente", value: multiPending, href: "/equipos?multiPending=true", icon: Monitors, tone: "teal" },
   ];
 
   return (
@@ -104,20 +107,26 @@ export default async function HomePage() {
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {kpis.map((kpi) => (
-          <Link key={kpi.label} href={kpi.href}>
-            <Card className="transition-colors hover:border-primary">
-              <CardHeader className="pb-1">
-                <CardTitle className="text-xs font-medium text-muted-foreground">
-                  {kpi.label}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <span className="text-2xl font-semibold">{kpi.value}</span>
-              </CardContent>
-            </Card>
-          </Link>
+          <KpiTile key={kpi.label} {...kpi} />
         ))}
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Estado de la asistencia remota</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Donut
+            title="Equipos por estado"
+            slices={[
+              { label: "Listos", value: ready, color: "#2fa84f" },
+              { label: "Sin VNC", value: notListening, color: "#f39a1f" },
+              { label: "Sin instalar", value: notInstalled, color: "#c0392b" },
+              { label: "Apagados / sin datos", value: offlineOrUnknown, color: "#8a8f98" },
+            ]}
+          />
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

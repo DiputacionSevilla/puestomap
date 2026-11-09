@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   Building2,
+  ChevronsLeft,
+  ChevronsRight,
   HelpCircle,
   Home,
   Monitor,
@@ -32,10 +35,33 @@ const NAV = [
 
 export function Sidebar({ role }: { role: AppRole }) {
   const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => {
+    try {
+      setCollapsed(window.localStorage.getItem("pm-sidebar") === "collapsed");
+    } catch {
+      // sin almacenamiento: menú desplegado
+    }
+  }, []);
+  function toggle() {
+    setCollapsed((value) => {
+      try {
+        window.localStorage.setItem("pm-sidebar", value ? "open" : "collapsed");
+      } catch {
+        // ignorar
+      }
+      return !value;
+    });
+  }
   return (
-    <aside className="hidden w-56 shrink-0 flex-col border-r bg-muted/30 md:flex">
-      <div className="flex h-14 items-center border-b px-4 font-semibold tracking-tight">
-        PuestoMap
+    <aside
+      className={cn(
+        "hidden shrink-0 flex-col bg-[hsl(var(--sidebar))] text-[hsl(var(--sidebar-foreground))] transition-[width] md:flex",
+        collapsed ? "w-14" : "w-56",
+      )}
+    >
+      <div className="flex h-14 items-center px-4 text-lg font-semibold tracking-tight">
+        {collapsed ? "PM" : "PuestoMap"}
       </div>
       <nav className="flex flex-1 flex-col gap-1 p-2">
         {NAV.filter((item) =>
@@ -50,19 +76,28 @@ export function Sidebar({ role }: { role: AppRole }) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                  "flex items-center gap-3 rounded-sm px-3 py-2 text-sm font-medium transition-colors",
                   active
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                    ? "bg-[hsl(var(--sidebar-active))]"
+                    : "text-white/85 hover:bg-white/10 hover:text-white",
                 )}
+                title={item.label}
               >
-                <Icon className="h-4 w-4" />
-                {item.label}
+                <Icon className="h-4 w-4 shrink-0" />
+                {collapsed ? <span className="sr-only">{item.label}</span> : item.label}
               </Link>
             );
           },
         )}
       </nav>
+      <button
+        type="button"
+        onClick={toggle}
+        className="flex items-center gap-2 px-4 py-3 text-sm text-white/85 hover:text-white"
+        aria-label={collapsed ? "Desplegar menú" : "Plegar menú"}
+      >
+        {collapsed ? <ChevronsRight className="h-4 w-4" /> : <><ChevronsLeft className="h-4 w-4" /> Plegar menú</>}
+      </button>
     </aside>
   );
 }

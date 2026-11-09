@@ -1,0 +1,108 @@
+name: puestomap-prod
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: puestomap
+      POSTGRES_USER: puestomap
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TZ: Europe/Madrid
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U puestomap -d puestomap"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: { context: ., target: web }
+    image: puestomap-web:latest
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://puestomap:${POSTGRES_PASSWORD}@db:5432/puestomap
+      APP_URL: ${COMPOSE_APP_URL}
+      AUTH_SECRET: ${AUTH_SECRET}
+      AUTH_TRUST_HOST: ${AUTH_TRUST_HOST:-true}
+      ADMIN_INITIAL_USER: ${ADMIN_INITIAL_USER:-admin}
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:-}
+      VNC_ENC_KEY: ${VNC_ENC_KEY}
+      GATEWAY_JWT_SECRET: ${GATEWAY_JWT_SECRET}
+      GATEWAY_PUBLIC_URL: ${COMPOSE_GATEWAY_PUBLIC_URL}
+      UPLOADS_DIR: /data/uploads
+      LASTUSER_IGNORE: ${LASTUSER_IGNORE:-system}
+      SVG_MAX_MB: ${SVG_MAX_MB:-2}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      SEED_ON_START: ${SEED_ON_START:-false}
+    depends_on:
+      db: { condition: service_healthy }
+    volumes:
+      - uploads:/data/uploads
+    ports:
+      - "3100:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+
+  gateway:
+    build: { context: ., target: gateway }
+    image: puestomap-gateway:latest
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://puestomap:${POSTGRES_PASSWORD}@db:5432/puestomap
+      APP_URL: ${COMPOSE_APP_URL}
+      GATEWAY_PORT: 8081
+      GATEWAY_JWT_SECRET: ${GATEWAY_JWT_SECRET}
+      ALLOWED_CIDRS: ${ALLOWED_CIDRS}
+      VNC_ALLOWED_PORTS: ${VNC_ALLOWED_PORTS:-5900-5909}
+      SESSION_IDLE_TIMEOUT_MIN: ${SESSION_IDLE_TIMEOUT_MIN:-30}
+      SESSION_MAX_HOURS: ${SESSION_MAX_HOURS:-4}
+      TARGET_RESOLUTION: ${TARGET_RESOLUTION:-dns_first}
+      DNS_SUFFIX: ${DNS_SUFFIX:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      db: { condition: service_healthy }
+    ports:
+      - "8181:8081"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8081/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 5
+
+  worker:
+    build: { context: ., target: worker }
+    image: puestomap-worker:latest
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://puestomap:${POSTGRES_PASSWORD}@db:5432/puestomap
+      WORKER_HEALTH_PORT: 8082
+      OCS_API_URL: ${OCS_API_URL:-}
+      OCS_API_USER: ${OCS_API_USER:-}
+      OCS_API_PASSWORD: ${OCS_API_PASSWORD:-}
+      OCS_SYNC_CRON: ${OCS_SYNC_CRON:-0 */2 * * *}
+      PROBE_INTERVAL_MIN: ${PROBE_INTERVAL_MIN:-5}
+      PROBE_CONCURRENCY: ${PROBE_CONCURRENCY:-32}
+      PROBE_TIMEOUT_MS: ${PROBE_TIMEOUT_MS:-1500}
+      PROBE_ONLINE_PORTS: ${PROBE_ONLINE_PORTS:-445,135,3389}
+      VNC_DEFAULT_PORT: ${VNC_DEFAULT_PORT:-5900}
+      VNC_ALLOWED_PORTS: ${VNC_ALLOWED_PORTS:-5900-5909}
+      PROBE_SCREEN_MAX: ${PROBE_SCREEN_MAX:-4}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      db: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8082/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 5
+
+volumes:
+  pgdata:
+  uploads:

@@ -1,26 +1,26 @@
 ﻿<#
-  Despliegue REMOTO del GLPI Agent a partir de un CSV de un escáner de IPs.
+  Despliegue REMOTO del GLPI Agent a partir de un CSV de un escaneo de IPs (p. ej. Advanced IP Scanner).
 
-  Para cada equipo del CSV:
-    1. Comprueba que responde (TCP 135/445) y que es Windows.
-    2. Se conecta por CIM/DCOM (sin WinRM), consulta el software instalado.
-    3. Si falta el GLPI Agent (o es más antiguo que el MSI): copia el MSI por \\IP\ADMIN$ y lo instala.
-    4. Solo si el GLPI Agent queda instalado: desinstala FusionInventory Agent y OCS Inventory Agent.
-    5. Anota el resultado en un CSV (deploy-results-<fecha>.csv).
+  Solo necesita SMB (puerto 445) y una cuenta administradora local en el destino; NO depende de
+  WMI/DCOM ni WinRM. Para cada equipo del CSV:
+    1. Comprueba el puerto 445 y abre \\IP\ADMIN$ con la cuenta indicada (comprobacion de permisos).
+    2. Copia Glpi-Agent-Payload.ps1 y lo ejecuta como SYSTEM mediante un servicio temporal
+       (igual que PsExec); lee el resultado desde ADMIN$ y borra el servicio y los ficheros.
+    3. El payload verifica que es un puesto Windows (no servidor) y que el nombre coincide con el CSV.
+       Instala el MSI si falta o es mas antiguo y, SOLO si el GLPI Agent queda instalado, desinstala
+       FusionInventory Agent y OCS Inventory Agent.
+    4. Anota el resultado en deploy-results-<fecha>.csv.
 
-  SEGURO POR DEFECTO: sin -Execute solo hace comprobaciones de lectura y dice qué haría.
+  MODOS
+    (sin -Execute)  Simulacion: ejecuta el payload en modo Plan. No instala ni desinstala nada, pero crea
+                    y borra un servicio temporal y ficheros en C:\Windows\Temp del destino.
+    -CheckOnly      Solo abre ADMIN$ (lectura pura): comprueba alcance y permisos de la cuenta.
+    -Execute        Despliegue real (pide escribir SI; -Force lo omite).
 
   Ejemplos
-    # Simulación sobre todo el CSV (no cambia nada):
-    .\Deploy-GlpiAgentRemote.ps1 -CsvPath .\escaneo.csv -MsiPath .\GLPI-Agent-1.21-x64.msi
-    # Piloto real con 5 equipos:
-    .\Deploy-GlpiAgentRemote.ps1 -CsvPath .\escaneo.csv -MsiPath .\GLPI-Agent-1.21-x64.msi -Only PC01,PC02 -Execute
-    # Lote real de 20 equipos con otra cuenta:
-    .\Deploy-GlpiAgentRemote.ps1 -CsvPath .\escaneo.csv -MsiPath .\agent.msi -Credential (Get-Credential) -Limit 20 -Execute
-
-  Requisitos en los equipos destino: cuenta con permisos de administrador local (p. ej. administrador
-  de dominio), puertos 135 y 445 accesibles desde este PC y la regla de firewall «Administración
-  remota de Windows (DCOM/WMI)». Ver README.md.
+    .\Deploy-GlpiAgentRemote.ps1 -CsvPath .\escaneo.csv -MsiPath .\GLPI-Agent-1.21-x64.msi -CheckOnly -Credential (Get-Credential)
+    .\Deploy-GlpiAgentRemote.ps1 -CsvPath .\escaneo.csv -MsiPath .\GLPI-Agent-1.21-x64.msi -Credential (Get-Credential)
+    .\Deploy-GlpiAgentRemote.ps1 -CsvPath .\escaneo.csv -MsiPath .\GLPI-Agent-1.21-x64.msi -Only PC01,PC02 -Execute -Credential (Get-Credential)
 #>
 [CmdletBinding()]
 param(
@@ -35,17 +35,21 @@ param(
     [int]      $TimeoutMinutes = 10,
     [string]   $ExcludeVendor = 'RICOH|Synology|Sonic\s?wall|CARRIER ACCESS|Brother|Kyocera|Lexmark|Xerox|Canon|EPSON|\bOKI\b|Ubiquiti|MikroTik|Zyxel|Fortinet|Cisco|Hikvision|Dahua|APC|QNAP',
     [switch]   $SkipRemoveOld,
+    [switch]   $CheckOnly,
     [switch]   $Execute,
     [switch]   $Force,
     [string]   $ResultsPath = ''
 )
 
 $ErrorActionPreference = 'Stop'
-if ($Tag -match '[\s"&|<>^%]') { throw 'El parámetro -Tag no puede contener espacios ni caracteres especiales.' }
+if ($Tag -match '[\s"&|<>^%]') { throw 'El parametro -Tag no puede contener espacios ni caracteres especiales.' }
 if ($Server -notmatch '^https://[^\s"&|<>^%]+$') { throw '-Server debe ser una URL https:// sin espacios.' }
 if (-not (Test-Path -LiteralPath $MsiPath)) { throw "No existe el MSI: $MsiPath" }
 if (-not (Test-Path -LiteralPath $CsvPath)) { throw "No existe el CSV: $CsvPath" }
+if ($Execute -and $CheckOnly) { throw '-Execute y -CheckOnly son incompatibles.' }
 $MsiPath = (Resolve-Path -LiteralPath $MsiPath).Path
+$PayloadPath = Join-Path $PSScriptRoot 'Glpi-Agent-Payload.ps1'
+if (-not (Test-Path -LiteralPath $PayloadPath)) { throw "Falta $PayloadPath (debe estar junto a este script)." }
 if (-not $ResultsPath) { $ResultsPath = Join-Path (Get-Location) ('deploy-results-{0:yyyyMMdd-HHmmss}.csv' -f (Get-Date)) }
 
 # ------------------------------ Lectura del CSV de escaneo ------------------------------
@@ -62,20 +66,20 @@ function Read-ScanCsv([string]$Path) {
         foreach ($n in $names) { $m = $props | Where-Object { $_ -match ('^' + [regex]::Escape($n) + '\b') } | Select-Object -First 1; if ($m) { return $m } }
         return $null
     }
-    $ipCol   = Pick @('ip', 'ipaddress', 'direccion', 'address', 'host')
-    $nameCol = Pick @('hostname', 'nombre', 'name', 'equipo', 'computer')
-    $osCol   = Pick @('os', 'sistema', 'operatingsystem')
+    $ipCol     = Pick @('ip', 'ipaddress', 'direccion', 'address', 'host')
+    $nameCol   = Pick @('hostname', 'nombre', 'name', 'equipo', 'computer')
+    $osCol     = Pick @('os', 'sistema', 'operatingsystem')
     $vendorCol = Pick @('fabricante', 'vendor', 'manufacturer')
     $stateCol  = Pick @('estado', 'status', 'state')
     if (-not $ipCol -and -not $nameCol) { throw "El CSV debe tener una columna de IP o de nombre. Columnas: $($props -join ', ')" }
     $seen = @{}
     foreach ($r in $rows) {
-        $ip   = if ($ipCol)   { ([string]$r.$ipCol).Trim() } else { '' }
-        $name = if ($nameCol) { ([string]$r.$nameCol).Trim() } else { '' }
-        $os   = if ($osCol)   { ([string]$r.$osCol).Trim() } else { '' }
+        $ip     = if ($ipCol)     { ([string]$r.$ipCol).Trim() } else { '' }
+        $name   = if ($nameCol)   { ([string]$r.$nameCol).Trim() } else { '' }
+        $os     = if ($osCol)     { ([string]$r.$osCol).Trim() } else { '' }
         $vendor = if ($vendorCol) { ([string]$r.$vendorCol).Trim() } else { '' }
         $state  = if ($stateCol)  { ([string]$r.$stateCol).Trim() } else { '' }
-        if ($name -eq $ip) { $name = '' }   # los escáneres rellenan el nombre con la IP cuando no lo resuelven
+        if ($name -eq $ip) { $name = '' }   # los escaneres rellenan el nombre con la IP cuando no lo resuelven
         $target = if ($ip) { $ip } else { $name }
         if (-not $target -or $seen.ContainsKey($target)) { continue }
         $seen[$target] = $true
@@ -88,7 +92,6 @@ if ($Only) { $targets = @($targets | Where-Object { $Only -contains $_.Hostname 
 if ($Limit -gt 0) { $targets = @($targets | Select-Object -First $Limit) }
 if ($targets.Count -eq 0) { Write-Warning 'No hay equipos que procesar.'; return }
 
-# Versión del MSI (una sola vez)
 function Get-MsiVersion([string]$Path) {
     $installer = New-Object -ComObject WindowsInstaller.Installer
     $db = $installer.GetType().InvokeMember('OpenDatabase', 'InvokeMethod', $null, $installer, @($Path, 0))
@@ -98,63 +101,73 @@ function Get-MsiVersion([string]$Path) {
     $record.GetType().InvokeMember('StringData', 'GetProperty', $null, $record, 1)
 }
 $msiVersion = Get-MsiVersion $MsiPath
-
-Write-Host ("Equipos a procesar: {0} | MSI {1} | Modo: {2}" -f $targets.Count, $msiVersion, $(if ($Execute) { 'REAL (instala y desinstala)' } else { 'SIMULACIÓN (solo lectura)' }))
+$modeText = if ($Execute) { 'REAL (instala y desinstala)' } elseif ($CheckOnly) { 'COMPROBACION (solo abre ADMIN$)' } else { 'SIMULACION (sin instalar ni desinstalar)' }
+Write-Host ("Equipos a procesar: {0} | MSI {1} | Modo: {2}" -f $targets.Count, $msiVersion, $modeText)
 
 if ($Execute -and -not $Force) {
-    $answer = Read-Host "Se instalará el GLPI Agent y se desinstalarán OCS/FusionInventory en $($targets.Count) equipo(s). Escribe SI para continuar"
+    $answer = Read-Host "Se instalara el GLPI Agent y se desinstalaran OCS/FusionInventory en $($targets.Count) equipo(s) (los no aptos se omiten). Escribe SI para continuar"
     if ($answer -ne 'SI') { Write-Host 'Cancelado.'; return }
 }
 
 # ------------------------------ Trabajo por equipo (se ejecuta en un job) ------------------------------
 $worker = {
-    param($Item, $MsiPath, $MsiVersion, $Server, $Tag, $Credential, $Execute, $SkipRemoveOld, $TimeoutMinutes, $ExcludeVendor)
+    param($Item, $MsiPath, $PayloadPath, $MsiVersion, $Server, $Tag, $Credential, $Execute, $SkipRemoveOld, $CheckOnly, $TimeoutMinutes, $ExcludeVendor)
     $ErrorActionPreference = 'Stop'
-    if ($Execute -isnot [bool] -or $SkipRemoveOld -isnot [bool]) { throw 'Parámetros de modo inválidos; se aborta por seguridad.' }
+    if ($Execute -isnot [bool] -or $SkipRemoveOld -isnot [bool] -or $CheckOnly -isnot [bool]) { throw 'Parametros de modo invalidos; se aborta por seguridad.' }
     $result = [ordered]@{ Target = $Item.Target; Hostname = $Item.Hostname; RemoteName = ''; Status = ''; Detail = ''; Time = (Get-Date -Format 's') }
-    $cim = $null; $drive = $null
+    $drive = $null
+
     function Test-Port([string]$HostName, [int]$Port) {
         $tcp = New-Object System.Net.Sockets.TcpClient
         try { return $tcp.ConnectAsync($HostName, $Port).Wait(2500) } catch { return $false } finally { $tcp.Close() }
     }
-    function Get-Programs($Session) {
-        $hklm = [uint32]2147483650
-        $out = @()
-        foreach ($sub in 'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall', 'SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall') {
-            $keys = (Invoke-CimMethod -CimSession $Session -Namespace root/default -ClassName StdRegProv -MethodName EnumKey -Arguments @{ hDefKey = $hklm; sSubKeyName = $sub }).sNames
-            foreach ($k in $keys) {
-                $path = "$sub\$k"
-                $name = (Invoke-CimMethod -CimSession $Session -Namespace root/default -ClassName StdRegProv -MethodName GetStringValue -Arguments @{ hDefKey = $hklm; sSubKeyName = $path; sValueName = 'DisplayName' }).sValue
-                if (-not $name -or $name -notmatch 'GLPI[ -]Agent|FusionInventory.*Agent|OCS Inventory.*Agent') { continue }
-                $get = { param($v) (Invoke-CimMethod -CimSession $Session -Namespace root/default -ClassName StdRegProv -MethodName GetStringValue -Arguments @{ hDefKey = $hklm; sSubKeyName = $path; sValueName = $v }).sValue }
-                $out += [pscustomobject]@{ Key = $k; DisplayName = $name; DisplayVersion = (& $get 'DisplayVersion'); Uninstall = (& $get 'UninstallString'); Quiet = (& $get 'QuietUninstallString') }
+
+    # Ejecuta el payload en el destino y devuelve su resultado (objeto) o lanza una excepcion
+    function Invoke-Payload([string]$Addr, [string]$AdminRoot, [bool]$IsLocal, [string]$Mode, [bool]$CopyMsi, [string]$ExpectedName) {
+        $id = 'gdp' + (Get-Date -Format 'HHmmss') + (Get-Random -Maximum 999)
+        $tempLocal = Join-Path $AdminRoot 'Temp'
+        $remoteTemp = if ($IsLocal) { $env:SystemRoot + '\Temp' } else { 'C:\Windows\Temp' }
+        Copy-Item -LiteralPath $PayloadPath -Destination (Join-Path $tempLocal "$id.ps1") -Force
+        $msiArg = ''
+        if ($CopyMsi) {
+            Copy-Item -LiteralPath $MsiPath -Destination (Join-Path $tempLocal "$id.msi") -Force
+            $msiArg = " -MsiPath $remoteTemp\$id.msi"
+        }
+        $psArgs = "-NoProfile -ExecutionPolicy Bypass -File $remoteTemp\$id.ps1 -Mode $Mode -ResultFile $remoteTemp\$id.json -Server $Server -TargetVersion $MsiVersion$msiArg -RemoveOld $(if ($SkipRemoveOld) { 0 } else { 1 })"
+        if ($Tag) { $psArgs += " -Tag $Tag" }
+        if ($ExpectedName) { $psArgs += " -ExpectedName $ExpectedName" }
+        $resultPath = Join-Path $tempLocal "$id.json"
+        $created = $false
+        try {
+            if ($IsLocal) {
+                $p = Start-Process -FilePath 'powershell.exe' -ArgumentList $psArgs -Wait -PassThru -WindowStyle Hidden
+            } else {
+                # El .cmd lanza powershell desacoplado (start) para que el servicio termine al instante
+                Set-Content -LiteralPath (Join-Path $tempLocal "$id.cmd") -Value ("@echo off`r`nstart `"`" /min powershell.exe $psArgs") -Encoding ASCII
+                $prev = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+                $out = & sc.exe "\\$Addr" create $id binPath= "cmd.exe /c $remoteTemp\$id.cmd" start= demand obj= LocalSystem 2>&1
+                $code = $LASTEXITCODE
+                $ErrorActionPreference = $prev
+                if ($code -ne 0) { throw "sc create fallo ($code): $(($out | Out-String).Trim())" }
+                $created = $true
+                $prev = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+                & sc.exe "\\$Addr" start $id 2>&1 | Out-Null   # devuelve 1053 (no responde al SCM): es lo esperado
+                $ErrorActionPreference = $prev
             }
+            $deadline = (Get-Date).AddMinutes($TimeoutMinutes)
+            while (-not (Test-Path -LiteralPath $resultPath) -and (Get-Date) -lt $deadline) { Start-Sleep -Seconds 3 }
+            if (-not (Test-Path -LiteralPath $resultPath)) { throw "Tiempo agotado ($TimeoutMinutes min) sin resultado del payload" }
+            Start-Sleep -Milliseconds 500
+            return (Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json)
         }
-        $out
-    }
-    function ConvertTo-SafeVersion([string]$Text) {
-        $m = [regex]::Match($Text, '\d+(\.\d+){0,3}')
-        if (-not $m.Success) { return $null }
-        $parts = $m.Value.Split('.'); while ($parts.Count -lt 2) { $parts += '0' }
-        try { return [version]($parts -join '.') } catch { return $null }
-    }
-    function Invoke-RemoteBatch($Session, [string]$AdminRoot, [string]$Name, [string[]]$Lines, [int]$TimeoutMin) {
-        # Escribe un .cmd en C:\Windows\Temp, lo ejecuta y lee el código de salida del fichero .rc
-        $local = Join-Path $AdminRoot "Temp\$Name.cmd"
-        $rc    = Join-Path $AdminRoot "Temp\$Name.rc"
-        Remove-Item -LiteralPath $rc -ErrorAction SilentlyContinue
-        Set-Content -LiteralPath $local -Value (@('@echo off') + $Lines + @("echo %errorlevel%> C:\Windows\Temp\$Name.rc")) -Encoding ASCII
-        $created = Invoke-CimMethod -CimSession $Session -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = "cmd.exe /c C:\Windows\Temp\$Name.cmd" }
-        if ($created.ReturnValue -ne 0) { throw "No se pudo lanzar el proceso remoto (código $($created.ReturnValue))" }
-        $deadline = (Get-Date).AddMinutes($TimeoutMin)
-        while ((Get-Date) -lt $deadline) {
-            Start-Sleep -Seconds 3
-            if (-not (Get-CimInstance -CimSession $Session -ClassName Win32_Process -Filter "ProcessId=$($created.ProcessId)" -ErrorAction SilentlyContinue)) { break }
+        finally {
+            if ($created) {
+                $prev = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+                & sc.exe "\\$Addr" delete $id 2>&1 | Out-Null
+                $ErrorActionPreference = $prev
+            }
+            foreach ($ext in 'ps1', 'cmd', 'json', 'msi') { Remove-Item -LiteralPath (Join-Path $tempLocal "$id.$ext") -Force -ErrorAction SilentlyContinue }
         }
-        if (-not (Test-Path -LiteralPath $rc)) { throw "Tiempo agotado ($TimeoutMin min) o sin código de salida" }
-        $code = [int]((Get-Content -LiteralPath $rc -Raw).Trim())
-        Remove-Item -LiteralPath $local, $rc -ErrorAction SilentlyContinue
-        $code
     }
 
     try {
@@ -162,100 +175,42 @@ $worker = {
         if ($Item.Vendor -and $ExcludeVendor -and $Item.Vendor -match $ExcludeVendor) { $result.Status = 'OMITIDO'; $result.Detail = "Dispositivo no PC (fabricante: $($Item.Vendor))"; return [pscustomobject]$result }
         if ($Item.State -and $Item.State -notmatch 'activ|active|up|online') { $result.Status = 'OMITIDO'; $result.Detail = "Estado en el escaneo: $($Item.State)"; return [pscustomobject]$result }
         if ($Item.Os -and $Item.Os -notmatch 'windows|win\d|microsoft') { $result.Status = 'OMITIDO'; $result.Detail = "Sistema no Windows ($($Item.Os))"; return [pscustomobject]$result }
-        if (-not (Test-Port $addr 445) -or -not (Test-Port $addr 135)) { $result.Status = 'NO_ALCANZABLE'; $result.Detail = 'Puertos 135/445 cerrados o sin respuesta'; return [pscustomobject]$result }
 
-        # Este mismo PC: Windows rechaza credenciales explícitas contra uno mismo; se usa la sesión actual.
         $localIps = @([System.Net.Dns]::GetHostAddresses($env:COMPUTERNAME) | ForEach-Object { $_.IPAddressToString }) + @('127.0.0.1', 'localhost', $env:COMPUTERNAME)
         $isLocal = $localIps -contains $addr
-        $useCred = $Credential -and -not $isLocal
+        if (-not $isLocal -and -not (Test-Port $addr 445)) { $result.Status = 'NO_ALCANZABLE'; $result.Detail = 'Puerto 445 cerrado o sin respuesta'; return [pscustomobject]$result }
 
-        # Comprobación previa por SMB (solo lectura): ¿la cuenta es administradora en el destino?
+        # Acceso a ADMIN$ con la cuenta indicada (abre una conexion SMB autenticada que reutiliza sc.exe)
         $driveName = 'GD' + ([guid]::NewGuid().ToString('N').Substring(0, 6))
-        if (-not $isLocal) {
+        if ($isLocal) {
+            $adminRoot = $env:SystemRoot + '\'
+        } else {
             $dp = @{ Name = $driveName; PSProvider = 'FileSystem'; Root = "\\$addr\ADMIN`$"; ErrorAction = 'Stop' }
-            if ($useCred) { $dp.Credential = $Credential }
+            if ($Credential) { $dp.Credential = $Credential }
             try { $drive = New-PSDrive @dp }
             catch {
                 $result.Status = 'SIN_ACCESO_SMB'
-                $result.Detail = "No se puede abrir ADMIN$ con la cuenta usada: $($_.Exception.Message.Trim()). La cuenta debe ser administradora local del equipo (con cuentas locales, LocalAccountTokenFilterPolicy=1)."
+                $result.Detail = "No se puede abrir ADMIN$ con la cuenta usada: $($_.Exception.Message.Trim())"
                 return [pscustomobject]$result
             }
+            $adminRoot = "${driveName}:\"
         }
+        if ($CheckOnly) { $result.Status = 'ACCESO_OK'; $result.Detail = 'ADMIN$ accesible con la cuenta usada'; return [pscustomobject]$result }
 
-        $opt = New-CimSessionOption -Protocol Dcom
-        $params = @{ ComputerName = $addr; SessionOption = $opt; OperationTimeoutSec = 60; ErrorAction = 'Stop' }
-        if ($useCred) { $params.Credential = $Credential }
-        try { $cim = New-CimSession @params; $null = Get-CimInstance -CimSession $cim -ClassName Win32_ComputerSystem }
-        catch {
-            $result.Status = 'ERROR_DCOM'
-            $result.Detail = "SMB correcto pero falla CIM/DCOM: $($_.Exception.Message.Trim()). Revisar la regla de firewall de WMI (DCOM-In) y los permisos DCOM."
+        $expected = $Item.Hostname
+        $plan = Invoke-Payload $addr $adminRoot $isLocal 'Plan' $false $expected
+        $result.RemoteName = [string]$plan.computer
+        if (-not $Execute -or $plan.status -in 'NOMBRE_DISTINTO', 'OMITIDO', 'ERROR') {
+            $result.Status = [string]$plan.status; $result.Detail = [string]$plan.detail
             return [pscustomobject]$result
         }
-        $cs = Get-CimInstance -CimSession $cim -ClassName Win32_ComputerSystem
-        $os = Get-CimInstance -CimSession $cim -ClassName Win32_OperatingSystem
-        $result.RemoteName = $cs.Name
-        if ($Item.Hostname -and $cs.Name -and ($Item.Hostname.Split('.')[0] -ne $cs.Name)) {
-            $result.Status = 'NOMBRE_DISTINTO'; $result.Detail = "El CSV dice $($Item.Hostname) pero responde $($cs.Name) (¿DHCP?). No se toca."
+        if (-not $plan.needInstall -and (@($plan.old).Count -eq 0 -or $SkipRemoveOld)) {
+            $result.Status = 'OK'; $result.Detail = "ya estaba ($($plan.glpiVersion)); nada que hacer"
             return [pscustomobject]$result
         }
-        if ($os.ProductType -ne 1) { $result.Status = 'OMITIDO'; $result.Detail = "No es un puesto de trabajo (ProductType $($os.ProductType)): $($os.Caption)"; return [pscustomobject]$result }
-
-        $programs = @(Get-Programs $cim)
-        $glpi = $programs | Where-Object { $_.DisplayName -match '^GLPI[ -]Agent' } | Select-Object -First 1
-        $old  = @($programs | Where-Object { $_.DisplayName -match 'FusionInventory.*Agent|OCS Inventory.*Agent' })
-        $target = ConvertTo-SafeVersion $MsiVersion
-        $have = if ($glpi) { ConvertTo-SafeVersion $glpi.DisplayVersion } else { $null }
-        $needInstall = (-not $glpi) -or ($have -and $target -and $have -lt $target)
-        $oldNames = ($old | ForEach-Object { $_.DisplayName }) -join ' + '
-
-        if (-not $Execute) {
-            $plan = @()
-            if ($needInstall) { $plan += "instalaría GLPI Agent $MsiVersion" } else { $plan += "GLPI Agent ya instalado ($($glpi.DisplayVersion))" }
-            if ($old.Count -gt 0 -and -not $SkipRemoveOld) { $plan += "desinstalaría: $oldNames" }
-            $result.Status = 'SIMULACION'; $result.Detail = ($plan -join '; ') + " [$($os.Caption)]"
-            return [pscustomobject]$result
-        }
-
-        # --- Acceso SMB a ADMIN$ (ya abierto en la comprobación previa) ---
-        if ($isLocal) { $adminRoot = "$env:SystemRoot\" } else { $adminRoot = "${driveName}:\" }
-        $stamp = Get-Date -Format 'yyyyMMddHHmmss'
-
-        if ($needInstall) {
-            $remoteMsi = Join-Path $adminRoot 'Temp\glpi-agent.msi'
-            Copy-Item -LiteralPath $MsiPath -Destination $remoteMsi -Force
-            $msiArgs = "/i C:\Windows\Temp\glpi-agent.msi /qn /norestart /l*v C:\Windows\Temp\glpi-agent-install.log SERVER=$Server ADD_FIREWALL_EXCEPTION=1 RUNNOW=1"
-            if ($Tag) { $msiArgs += " TAG=$Tag" }
-            $code = Invoke-RemoteBatch $cim $adminRoot "glpi-install-$stamp" @("start /wait msiexec.exe $msiArgs") $TimeoutMinutes
-            Remove-Item -LiteralPath $remoteMsi -ErrorAction SilentlyContinue
-            if ($code -notin 0, 3010) { $result.Status = 'ERROR_INSTALACION'; $result.Detail = "msiexec devolvió $code (log remoto: C:\Windows\Temp\glpi-agent-install.log)"; return [pscustomobject]$result }
-        }
-
-        # Verificar que el agente nuevo está instalado antes de tocar nada más
-        $after = @(Get-Programs $cim)
-        if (-not ($after | Where-Object { $_.DisplayName -match '^GLPI[ -]Agent' })) {
-            $result.Status = 'ERROR_VERIFICACION'; $result.Detail = 'El GLPI Agent no aparece tras la instalación; no se desinstala nada.'; return [pscustomobject]$result
-        }
-
-        $removed = @()
-        if (-not $SkipRemoveOld) {
-            $i = 0
-            foreach ($app in ($after | Where-Object { $_.DisplayName -match 'FusionInventory.*Agent|OCS Inventory.*Agent' })) {
-                $cmd = if ($app.Quiet) { $app.Quiet } else { $app.Uninstall }
-                $guid = [regex]::Match([string]$cmd, '\{[0-9A-Fa-f-]{36}\}').Value
-                $line = $null
-                if ($guid) { $line = "start /wait msiexec.exe /x $guid /qn /norestart" }
-                else {
-                    $exe = ([regex]::Match([string]$cmd, '^"?([^"]+?\.exe)"?')).Groups[1].Value
-                    if ($exe) { $line = "start /wait `"`" `"$exe`" /S" }
-                }
-                if (-not $line) { $removed += "$($app.DisplayName): sin comando de desinstalación"; continue }
-                $i++
-                $code = Invoke-RemoteBatch $cim $adminRoot "glpi-uninstall-$stamp-$i" @($line) $TimeoutMinutes
-                $removed += "$($app.DisplayName): " + $(if ($code -in 0, 3010) { 'desinstalado' } else { "error $code" })
-            }
-        }
-        $result.Status = if ($removed -match 'error|sin comando') { 'OK_CON_AVISOS' } else { 'OK' }
-        $result.Detail = (@($(if ($needInstall) { "instalado $MsiVersion" } else { "ya estaba ($($glpi.DisplayVersion))" })) + $removed) -join '; '
+        $apply = Invoke-Payload $addr $adminRoot $isLocal 'Apply' ([bool]$plan.needInstall) $expected
+        $result.RemoteName = [string]$apply.computer
+        $result.Status = [string]$apply.status; $result.Detail = [string]$apply.detail
         return [pscustomobject]$result
     }
     catch {
@@ -264,14 +219,14 @@ $worker = {
     }
     finally {
         if ($drive) { Remove-PSDrive -Name $drive.Name -Force -ErrorAction SilentlyContinue }
-        if ($cim) { Remove-CimSession -CimSession $cim -ErrorAction SilentlyContinue }
     }
 }
 
-# ------------------------------ Ejecución con límite de concurrencia ------------------------------
-# Booleanos reales (un [bool]$x dentro de -ArgumentList se interpretaría como texto = siempre verdadero)
+# ------------------------------ Ejecucion con limite de concurrencia ------------------------------
+# Booleanos reales (un [bool]$x dentro de -ArgumentList se interpretaria como texto = siempre verdadero)
 $executeFlag = [bool]$Execute.IsPresent
 $skipRemoveFlag = [bool]$SkipRemoveOld.IsPresent
+$checkOnlyFlag = [bool]$CheckOnly.IsPresent
 $results = New-Object System.Collections.Generic.List[object]
 $running = @{}
 $queue = New-Object System.Collections.Queue
@@ -298,7 +253,7 @@ function Receive-Finished {
 while ($queue.Count -gt 0 -or $running.Count -gt 0) {
     while ($queue.Count -gt 0 -and $running.Count -lt $Throttle) {
         $item = $queue.Dequeue()
-        $job = Start-Job -ScriptBlock $worker -ArgumentList @($item, $MsiPath, $msiVersion, $Server, $Tag, $Credential, $executeFlag, $skipRemoveFlag, $TimeoutMinutes, $ExcludeVendor)
+        $job = Start-Job -ScriptBlock $worker -ArgumentList @($item, $MsiPath, $PayloadPath, $msiVersion, $Server, $Tag, $Credential, $executeFlag, $skipRemoveFlag, $checkOnlyFlag, $TimeoutMinutes, $ExcludeVendor)
         $running[$job] = $item
     }
     Start-Sleep -Milliseconds 500

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   computersToCsv,
   normalizeCsvRows,
+  sanitizeCsvCell,
   validateComputerCsvRows,
   type KnownStructure,
 } from "@puestomap/shared";
@@ -107,5 +108,13 @@ describe("import/computers (T-U10)", () => {
     const lines = csv.replace("\uFEFF", "").trim().split("\r\n");
     expect(lines[0].split(";")[0]).toBe("hostname");
     expect(lines[1]).toContain("PC-01");
+  });
+
+  it("neutraliza fórmulas en exportaciones CSV", () => {
+    expect(sanitizeCsvCell("=HYPERLINK(\"https://example.test\")")).toBe(
+      `"'=HYPERLINK(""https://example.test"")"`,
+    );
+    expect(sanitizeCsvCell("  @SUM(1,1)")).toBe("'  @SUM(1,1)");
+    expect(sanitizeCsvCell("texto normal")).toBe("texto normal");
   });
 });

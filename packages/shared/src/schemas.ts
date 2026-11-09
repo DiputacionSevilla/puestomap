@@ -26,6 +26,18 @@ const ipSchema = z
   .nullable();
 const coordSchema = z.number().min(0).max(1);
 const vncPortSchema = z.number().int().min(5900).max(5909);
+export const adUsernameSchema = z.string().trim().toLowerCase().regex(/^[a-z0-9._-]{1,64}$/);
+export const qualityCheckSchema = z.enum([
+  "sinUbicar",
+  "sinDespacho",
+  "sinUsuario",
+  "usuarioDistinto",
+  "sinIp",
+  "noVistoOcs",
+  "sinOcs",
+  "usuarioFueraDirectorio",
+  "posicionSolapada",
+]);
 
 export const computerCreateSchema = z.object({
   hostname: hostnameSchema,
@@ -61,6 +73,7 @@ export const computerPatchSchema = z
     credentialId: z.string().cuid().nullable().optional(),
     vncOverride: triStateSchema.nullable().optional(),
     externalRef: z.string().trim().max(60).nullable().optional(),
+    adUsername: adUsernameSchema.nullable().optional(),
   })
   .strict();
 
@@ -93,7 +106,7 @@ export const screenInputSchema = z.object({
   enabled: z.boolean(),
 });
 
-export const screensPutSchema = z.array(screenInputSchema).min(1).max(4);
+export const screensPutSchema = z.array(screenInputSchema).max(4);
 
 export const sessionCreateSchema = z.object({
   mode: sessionModeSchema,
@@ -213,6 +226,7 @@ export const computersListQuerySchema = z.object({
   unplaced: booleanish.optional(),
   staleOcs: booleanish.optional(),
   multiPending: booleanish.optional(),
+  check: qualityCheckSchema.optional(),
   os: z.string().trim().max(120).optional(),
   archived: booleanish.optional(),
   sort: z.string().trim().max(40).optional(),
@@ -226,3 +240,4 @@ export type ComputerPatchInput = z.infer<typeof computerPatchSchema>;
 export type ComputerPositionInput = z.infer<typeof computerPositionSchema>;
 export type SessionCreateInput = z.infer<typeof sessionCreateSchema>;
 export type ComputersListQuery = z.infer<typeof computersListQuerySchema>;
+export type QualityCheck = z.infer<typeof qualityCheckSchema>;

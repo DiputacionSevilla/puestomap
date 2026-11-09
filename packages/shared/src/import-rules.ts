@@ -1,6 +1,7 @@
 import { normKey } from "./keys.js";
 import { normalizeAdUser } from "./ad-user.js";
 import { findOfficeAt, rectsOverlap, type Rect } from "./geo.js";
+import { sanitizeCsvCell } from "./csv.js";
 
 export type CsvRow = Record<string, string>;
 
@@ -168,7 +169,7 @@ export type KnownBuilding = {
 
 export type StructureCtx = {
   buildings: KnownBuilding[];
-  departments: { id: string; code: string }[];
+  departments: { id: string; code: string; name?: string }[];
 };
 
 export function validateStructureImport(
@@ -231,9 +232,8 @@ export function validateStructureImport(
     } else if (tipo === "DEPARTAMENTO") {
       values.codigo = codigo;
       values.nombre = nombre;
-      action = ctx.departments.some((d) => normKey(d.code) === normKey(codigo))
-        ? "actualizar"
-        : "crear";
+      const existing = ctx.departments.find((d) => normKey(d.code) === normKey(codigo));
+      action = existing ? (existing.name === undefined || existing.name === nombre ? "sin cambios" : "actualizar") : "crear";
     } else if (tipo === "PLANTA") {
       values.nombre = plantaNombre;
       values.edificioCodigo = edificioCodigo;
@@ -575,7 +575,6 @@ export function computerErrorsCsv(results: ComputerRowResult[]): string {
     for (const key of Object.keys(r.original)) allColumns.add(key);
   }
   const columns = ["linea", "codigo_error", "detalle", ...Array.from(allColumns)];
-  const esc = (v: string) => (/[;"\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
   const lines = [columns.join(";")];
   for (const r of results) {
     for (const err of r.errors) {
@@ -586,7 +585,7 @@ export function computerErrorsCsv(results: ComputerRowResult[]): string {
           err.detail,
           ...Array.from(allColumns).map((c) => r.original[c] ?? ""),
         ]
-          .map(esc)
+          .map(sanitizeCsvCell)
           .join(";"),
       );
     }

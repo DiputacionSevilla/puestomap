@@ -12,4 +12,6 @@ export * from "./screens.js";
 export * from "./svg-validate.js";
 export * from "./csv.js";
 export * from "./import-rules.js";
+export * from "./directory.js";
+export * from "./quality.js";
 export * from "./schemas.js";

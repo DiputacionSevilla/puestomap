@@ -16,6 +16,7 @@ export const COMPUTER_CSV_COLUMNS = [
   "credencial",
   "notas",
   "asset_tag",
+  "usuario_dominio",
 ] as const;
 
 export type ComputerCsvColumn = (typeof COMPUTER_CSV_COLUMNS)[number];
@@ -224,11 +225,13 @@ export function structureToCsv(rows: StructureCsvRow[]): string {
   return CSV_BOM + lines.join("\r\n") + "\r\n";
 }
 
-function sanitizeCsvCell(value: string): string {
-  if (/[;"\r\n]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
+export function sanitizeCsvCell(value: unknown): string {
+  let text = value == null ? "" : String(value);
+  if (/^[\t\r\n ]*[=+\-@]/.test(text)) text = `'${text}`;
+  if (/[;"\r\n]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
   }
-  return value;
+  return text;
 }
 
 export function normalizeCsvRows(

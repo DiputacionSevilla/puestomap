@@ -48,7 +48,6 @@ export const computerCreateSchema = z.object({
 
 export const computerPatchSchema = z
   .object({
-    ip: ipSchema.optional(),
     assignedTo: z.string().trim().max(120).nullable().optional(),
     phoneExt: z.string().trim().max(20).nullable().optional(),
     notes: z.string().trim().max(2000).nullable().optional(),
@@ -200,6 +199,10 @@ export const importCsvSchema = z.object({
   createMissing: z.boolean().optional(),
 });
 
+const booleanish = z
+  .union([z.boolean(), z.enum(["true", "false", "1", "0"])])
+  .transform((v) => v === true || v === "true" || v === "1");
+
 export const computersListQuerySchema = z.object({
   q: z.string().trim().max(120).optional(),
   buildingId: z.string().cuid().optional(),
@@ -207,11 +210,11 @@ export const computersListQuerySchema = z.object({
   departmentId: z.string().cuid().optional(),
   officeId: z.string().cuid().optional(),
   state: z.string().optional(),
-  unplaced: z.coerce.boolean().optional(),
-  staleOcs: z.coerce.boolean().optional(),
-  multiPending: z.coerce.boolean().optional(),
+  unplaced: booleanish.optional(),
+  staleOcs: booleanish.optional(),
+  multiPending: booleanish.optional(),
   os: z.string().trim().max(120).optional(),
-  archived: z.coerce.boolean().optional(),
+  archived: booleanish.optional(),
   sort: z.string().trim().max(40).optional(),
   dir: z.enum(["asc", "desc"]).optional(),
   page: z.coerce.number().int().min(1).optional(),

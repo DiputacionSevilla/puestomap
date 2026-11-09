@@ -17,13 +17,13 @@ criterios de aceptación cumplidos + `npm run verify` en verde + commit.
 - [x] T-09 Servicio de auditoría `audit(action, entity, entityId, data)` (RNF-SEC-7).
 
 ## F2 — Inventario y estructura
-- [ ] T-10 API de estructura física + pantallas CRUD (RF-05 CA-1, CA-4).
-- [ ] T-11 Subida y servicio de planos con `image-size` (RF-05 CA-2).
-- [ ] T-12 API `/api/computers` (listado, filtros, ficha, alta, edición, archivado) aplicando DM-1…DM-5 (RF-02, RF-03 CA-1/2/6).
-- [ ] T-13 Pantalla Equipos con tabla, filtros en URL, export CSV (RF-02).
-- [ ] T-14 Ficha de equipo (RF-03 sin mini-plano ni sondeo todavía).
-- [ ] T-15 Credenciales VNC (RF-14) y usuarios (RF-13).
-- [ ] T-16 Importación/exportación CSV de equipos y estructura con previsualización (RF-10) + T-U10.
+- [x] T-10 API de estructura física + pantallas CRUD (RF-05 CA-1, CA-4).
+- [x] T-11 Subida y servicio de planos con `image-size` (RF-05 CA-2).
+- [x] T-12 API `/api/computers` (listado, filtros, ficha, alta, edición, archivado) aplicando DM-1…DM-5 (RF-02, RF-03 CA-1/2/6).
+- [x] T-13 Pantalla Equipos con tabla, filtros en URL, export CSV (RF-02).
+- [x] T-14 Ficha de equipo (RF-03 sin mini-plano ni sondeo todavía).
+- [x] T-15 Credenciales VNC (RF-14) y usuarios (RF-13).
+- [x] T-16 Importación/exportación CSV de equipos y estructura con previsualización (RF-10) + T-U10.
 
 ## F3 — Worker: OCS y sondeo
 - [ ] T-17 `probeComputer` en shared + T-I1; endpoint de sondeo inmediato por equipo y por planta (RF-03 CA-3, RF-09 CA-5).

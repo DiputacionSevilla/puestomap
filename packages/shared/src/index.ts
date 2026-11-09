@@ -4,6 +4,7 @@ export * from "./geo.js";
 export * from "./rfb.js";
 export * from "./cidr.js";
 export * from "./vnc-status.js";
+export * from "./probe-update.js";
 export * from "./screens.js";
 export * from "./csv.js";
 export * from "./schemas.js";

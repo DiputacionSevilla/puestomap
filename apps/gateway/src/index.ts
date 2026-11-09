@@ -5,6 +5,7 @@ import pg from "pg";
 import { verifyGatewayToken } from "@puestomap/shared/token";
 import { createGateway } from "./gateway.js";
 import { PgSessionStore } from "./pg-session-store.js";
+import { logger } from "./logger.js";
 
 function env(name: string, fallback = ""): string {
   const vars: Record<string, string | undefined> = process.env;
@@ -69,11 +70,11 @@ const databaseUrl = env("DATABASE_URL");
 const jwtSecret = env("GATEWAY_JWT_SECRET");
 
 if (!jwtSecret) {
-  console.error("[gateway] falta GATEWAY_JWT_SECRET");
+  logger.error("Falta GATEWAY_JWT_SECRET");
   process.exit(1);
 }
 if (!databaseUrl) {
-  console.error("[gateway] falta DATABASE_URL");
+  logger.error("Falta DATABASE_URL");
   process.exit(1);
 }
 
@@ -90,7 +91,7 @@ const gateway = createGateway({
   isPortAllowed: (p) => allowedPorts.includes(p),
   idleTimeoutMs,
   maxDurationMs,
-  logger: console,
+  logger,
 });
 
 const server = http.createServer((req, res) => {
@@ -113,7 +114,7 @@ server.on("upgrade", (req, socket, head) => {
 });
 
 server.listen(port, () => {
-  console.log(`[gateway] escuchando en :${port}`);
+  logger.info("Gateway escuchando", { port });
 });
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {

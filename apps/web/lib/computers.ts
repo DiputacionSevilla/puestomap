@@ -109,7 +109,9 @@ export function buildComputersWhere(query: ComputersListQuery, directoryMatches:
   }
   if (query.staleOcs === true) {
     const cutoff = new Date(Date.now() - STALE_OCS_DAYS * 24 * 60 * 60 * 1000);
-    and.push({ ocsLastInventory: { lt: cutoff } });
+    and.push({
+      OR: [{ lastInventoryAt: { lt: cutoff } }, { lastInventoryAt: null, ocsLastInventory: { lt: cutoff } }],
+    });
   }
   if (query.state) {
     const states = query.state

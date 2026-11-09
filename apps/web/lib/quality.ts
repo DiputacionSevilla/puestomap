@@ -8,7 +8,7 @@ export async function loadQualitySnapshot(now = new Date()) {
       where: { archived: false },
       select: {
         id: true, floorId: true, officeId: true, posX: true, posY: true, adUsername: true,
-        lastUserNorm: true, ip: true, ocsId: true, ocsLastInventory: true,
+        lastUserNorm: true, ip: true, glpiId: true, lastInventoryAt: true,
         floor: { select: { buildingId: true } },
       },
     }),

@@ -46,6 +46,7 @@ type ComputerData = {
   directoryUser: { displayName: string; department: string | null; phone: string | null } | null;
   lastUserDirectoryName: string | null;
   ocsLastInventory: string | null;
+  lastInventoryAt?: string | null;
   assignedTo: string | null;
   phoneExt: string | null;
   notes: string | null;
@@ -367,7 +368,7 @@ export function ComputerDetail({
                 <Field label="Dominio" value={computer.domain} origin={inventoryOrigin} />
                 <Field label="Último usuario" value={computer.lastUser} origin={inventoryOrigin} />
                 <Field label="Nombre en directorio" value={computer.lastUserDirectoryName} origin="Directorio" />
-                <Field label="Último inventario OCS" value={formatDateTime(computer.ocsLastInventory)} origin={inventoryOrigin} />
+                <Field label="Último inventario" value={formatDateTime(computer.lastInventoryAt ?? computer.ocsLastInventory)} origin={inventoryOrigin} />
               </CardContent>
             </Card>
             <Card>

@@ -1,27 +1,40 @@
 import type { QualityCheck } from "./schemas.js";
 
 export const QUALITY_CHECKS: QualityCheck[] = [
-  "sinUbicar",
-  "sinDespacho",
+  "sinColocar",
+  "sinLugar",
   "sinUsuario",
   "usuarioDistinto",
   "sinIp",
-  "noVistoOcs",
-  "sinOcs",
+  "sinInventario",
+  "noEnGlpi",
   "usuarioFueraDirectorio",
   "posicionSolapada",
 ];
 
 export const QUALITY_LABELS: Record<QualityCheck, string> = {
-  sinUbicar: "Sin ubicar en plano",
-  sinDespacho: "Sin despacho",
-  sinUsuario: "Sin usuario asignado",
-  usuarioDistinto: "Usuario distinto al último de OCS",
+  sinColocar: "Con planta pero sin colocar en el plano",
+  sinLugar: "Sin lugar en GLPI",
+  sinUsuario: "Sin usuario asignado en GLPI",
+  usuarioDistinto: "Usuario asignado distinto al último inventariado",
   sinIp: "Sin IP",
-  noVistoOcs: "No visto en OCS hace más de 30 días",
-  sinOcs: "Sin inventario OCS",
+  sinInventario: "Sin inventario reciente (más de 30 días)",
+  noEnGlpi: "No enlazado con GLPI",
   usuarioFueraDirectorio: "Usuario fuera del directorio",
   posicionSolapada: "Posición solapada",
+};
+
+/** Dónde se corrige cada check: «glpi» ⇒ la ficha ofrece «Corregir en GLPI» (specs/11 RF-24). */
+export const QUALITY_FIX_IN: Record<QualityCheck, "glpi" | "puestomap"> = {
+  sinColocar: "puestomap",
+  sinLugar: "glpi",
+  sinUsuario: "glpi",
+  usuarioDistinto: "glpi",
+  sinIp: "glpi",
+  sinInventario: "glpi",
+  noEnGlpi: "glpi",
+  usuarioFueraDirectorio: "glpi",
+  posicionSolapada: "puestomap",
 };
 
 export type QualityComputer = {
@@ -33,8 +46,8 @@ export type QualityComputer = {
   adUsername: string | null;
   lastUserNorm: string | null;
   ip: string | null;
-  ocsId: number | null;
-  ocsLastInventory: Date | null;
+  glpiId: number | null;
+  lastInventoryAt: Date | null;
 };
 
 export function qualityChecksFor(
@@ -44,14 +57,14 @@ export function qualityChecksFor(
   now = new Date(),
 ): QualityCheck[] {
   const checks: QualityCheck[] = [];
-  if (!computer.floorId || computer.posX === null || computer.posY === null) checks.push("sinUbicar");
-  if (computer.floorId && !computer.officeId) checks.push("sinDespacho");
+  if (computer.floorId && (computer.posX === null || computer.posY === null)) checks.push("sinColocar");
+  if (!computer.floorId) checks.push("sinLugar");
   if (!computer.adUsername) checks.push("sinUsuario");
   if (computer.adUsername && computer.lastUserNorm && computer.adUsername !== computer.lastUserNorm) checks.push("usuarioDistinto");
   if (!computer.ip) checks.push("sinIp");
   const stale = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-  if (computer.ocsId !== null && (!computer.ocsLastInventory || computer.ocsLastInventory < stale)) checks.push("noVistoOcs");
-  if (computer.ocsId === null) checks.push("sinOcs");
+  if (computer.glpiId !== null && (!computer.lastInventoryAt || computer.lastInventoryAt < stale)) checks.push("sinInventario");
+  if (computer.glpiId === null) checks.push("noEnGlpi");
   if (directory.size > 0 && computer.adUsername && !directory.has(computer.adUsername)) checks.push("usuarioFueraDirectorio");
   if (computer.floorId && computer.posX !== null && computer.posY !== null && all.some((other) =>
     other.id !== computer.id && other.floorId === computer.floorId && other.posX !== null && other.posY !== null &&

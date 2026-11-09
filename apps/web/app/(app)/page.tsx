@@ -29,7 +29,10 @@ export default async function HomePage() {
       prisma.computer.count({
         where: { ...base, OR: [{ floorId: null }, { posX: null }, { posY: null }] },
       }),
-      prisma.computer.count({ where: { ...base, ocsLastInventory: { lt: staleCutoff } } }),
+      prisma.computer.count({ where: {
+          ...base,
+          OR: [{ lastInventoryAt: { lt: staleCutoff } }, { lastInventoryAt: null, ocsLastInventory: { lt: staleCutoff } }],
+        } }),
       prisma.computer.findMany({
         where: base,
         include: {

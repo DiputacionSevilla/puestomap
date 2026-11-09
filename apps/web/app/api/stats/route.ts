@@ -40,7 +40,10 @@ export async function GET() {
         where: { ...base, OR: [{ floorId: null }, { posX: null }, { posY: null }] },
       }),
       prisma.computer.count({
-        where: { ...base, ocsLastInventory: { lt: staleCutoff } },
+        where: {
+          ...base,
+          OR: [{ lastInventoryAt: { lt: staleCutoff } }, { lastInventoryAt: null, ocsLastInventory: { lt: staleCutoff } }],
+        },
       }),
     ]);
 

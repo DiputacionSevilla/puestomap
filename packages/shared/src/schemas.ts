@@ -28,13 +28,13 @@ const coordSchema = z.number().min(0).max(1);
 const vncPortSchema = z.number().int().min(5900).max(5909);
 export const adUsernameSchema = z.string().trim().toLowerCase().regex(/^[a-z0-9._-]{1,64}$/);
 export const qualityCheckSchema = z.enum([
-  "sinUbicar",
-  "sinDespacho",
+  "sinColocar",
+  "sinLugar",
   "sinUsuario",
   "usuarioDistinto",
   "sinIp",
-  "noVistoOcs",
-  "sinOcs",
+  "sinInventario",
+  "noEnGlpi",
   "usuarioFueraDirectorio",
   "posicionSolapada",
 ]);

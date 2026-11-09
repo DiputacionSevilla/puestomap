@@ -71,16 +71,55 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
     const { computer, targetPort, screenId, screenLabel, passwordEnc } = await resolveTarget(id, input);
 
-    const activeConflict = await prisma.remoteSession.findFirst({
-      where: {
-        computerId: id,
-        status: "ACTIVE",
-        NOT: { userId: user.id },
-      },
-      include: { user: { select: { name: true, username: true } } },
-      orderBy: { startedAt: "asc" },
+    const result = await prisma.$transaction(async (tx) => {
+      // Serializa los inicios por equipo para que límite y creación sean atómicos.
+      await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(hashtext(${id}))`;
+
+      if (input.mode === "WEB") {
+        const ownOpenSessions = await tx.remoteSession.count({
+          where: {
+            computerId: id,
+            userId: user.id,
+            mode: "WEB",
+            status: { in: ["PENDING", "ACTIVE"] },
+          },
+        });
+        if (ownOpenSessions >= 4) {
+          throw new ApiError(409, "SESSION_LIMIT", "Máximo de 4 sesiones web simultáneas por equipo");
+        }
+      }
+
+      const activeConflict = await tx.remoteSession.findFirst({
+        where: {
+          computerId: id,
+          status: "ACTIVE",
+          NOT: { userId: user.id },
+        },
+        include: { user: { select: { name: true, username: true } } },
+        orderBy: { startedAt: "asc" },
+      });
+      if (activeConflict && input.force !== true) return { kind: "conflict" as const, activeConflict };
+
+      const session = await tx.remoteSession.create({
+        data: {
+          computerId: id,
+          userId: user.id,
+          mode: input.mode,
+          reason: input.reason ?? null,
+          targetPort,
+          screenId,
+          screenLabel,
+          groupId: input.groupId ?? null,
+          status: input.mode === "NATIVE" ? "ENDED" : "PENDING",
+          endedAt: input.mode === "NATIVE" ? new Date() : null,
+          endReason: input.mode === "NATIVE" ? "native_launch" : null,
+        },
+      });
+      return { kind: "created" as const, session };
     });
-    if (activeConflict && input.force !== true) {
+
+    if (result.kind === "conflict") {
+      const activeConflict = result.activeConflict;
       return jsonOk(
         {
           error: {
@@ -95,22 +134,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         409,
       );
     }
-
-    const session = await prisma.remoteSession.create({
-      data: {
-        computerId: id,
-        userId: user.id,
-        mode: input.mode,
-        reason: input.reason ?? null,
-        targetPort,
-        screenId,
-        screenLabel,
-        groupId: input.groupId ?? null,
-        status: input.mode === "NATIVE" ? "ENDED" : "PENDING",
-        endedAt: input.mode === "NATIVE" ? new Date() : null,
-        endReason: input.mode === "NATIVE" ? "native_launch" : null,
-      },
-    });
+    const session = result.session;
 
     const ip = clientIp(req);
     await audit({
@@ -124,9 +148,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
     if (input.mode === "NATIVE") {
       const host = computer.ip ?? computer.hostname;
+      // Protocolo: tightvnc://host:puerto (un solo ':'). El lanzador abre tvnviewer con host::puerto.
       return jsonOk({
         sessionId: session.id,
-        url: `tightvnc://${host}::${targetPort}`,
+        url: `tightvnc://${host}:${targetPort}`,
         host,
         targetPort,
       });

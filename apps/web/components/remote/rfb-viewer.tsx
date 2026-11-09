@@ -53,14 +53,20 @@ const CLOSE_MESSAGES: Record<number, string> = {
 function instrumentWebSocket() {
   const Original = window.WebSocket;
   let lastClose = { code: 0, reason: "" };
-  const Wrapped = function (this: unknown, url: string | URL, protocols?: string | string[]) {
-    const ws = new Original(url, protocols);
-    ws.addEventListener("close", (ev) => {
+  const TrackedWebSocket = function (
+    this: unknown,
+    url: string | URL,
+    protocols?: string | string[],
+  ) {
+    const socket = new Original(url, protocols);
+    socket.addEventListener("close", (ev) => {
       lastClose = { code: ev.code, reason: ev.reason };
     });
-    return ws;
+    return socket;
   } as unknown as typeof WebSocket;
-  window.WebSocket = Wrapped;
+  // Conserva WebSocket.OPEN y el resto de constantes que consulta noVNC.
+  Object.setPrototypeOf(TrackedWebSocket, Original);
+  window.WebSocket = TrackedWebSocket;
   return {
     restore: () => {
       window.WebSocket = Original;
@@ -69,10 +75,19 @@ function instrumentWebSocket() {
   };
 }
 
-export function RfbViewer({ computerId }: { computerId: string }) {
+export function RfbViewer({
+  computerId,
+  screen = "desktop",
+  groupId,
+  embedded = false,
+}: {
+  computerId: string;
+  screen?: number | "desktop";
+  groupId?: string;
+  embedded?: boolean;
+}) {
   const screenRef = useRef<HTMLDivElement>(null);
   const rfbRef = useRef<RfbConnection | null>(null);
-  const instrumentRef = useRef<ReturnType<typeof instrumentWebSocket> | null>(null);
   const [status, setStatus] = useState<"init" | "connecting" | "connected" | "error" | "ended">("init");
   const [message, setMessage] = useState<string | null>(null);
   const [conflict, setConflict] = useState<ConflictInfo | null>(null);
@@ -80,12 +95,12 @@ export function RfbViewer({ computerId }: { computerId: string }) {
   const [startedAt, setStartedAt] = useState<Date | null>(null);
   const [elapsed, setElapsed] = useState("00:00");
   const [reason, setReason] = useState("");
-  const [askReason, setAskReason] = useState(true);
+  const [askReason, setAskReason] = useState(!embedded);
   const [session, setSession] = useState<SessionInfo | null>(null);
 
   useEffect(() => {
-    setAskReason(window.localStorage.getItem("pm-ask-reason") !== "off");
-  }, []);
+    setAskReason(!embedded && window.localStorage.getItem("pm-ask-reason") !== "off");
+  }, [embedded]);
 
   useEffect(() => {
     if (!startedAt) return;
@@ -97,6 +112,13 @@ export function RfbViewer({ computerId }: { computerId: string }) {
     }, 1000);
     return () => clearInterval(timer);
   }, [startedAt]);
+
+  useEffect(() => {
+    if (!session || embedded) return;
+    document.title = session.screenLabel
+      ? `${session.hostname} · ${session.screenLabel}`
+      : `${session.hostname} · Escritorio completo`;
+  }, [embedded, session]);
 
   const connectRef = useRef<(force: boolean) => Promise<void>>(async () => undefined);
 
@@ -110,7 +132,7 @@ export function RfbViewer({ computerId }: { computerId: string }) {
       const res = await fetch(`/api/computers/${computerId}/sessions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "WEB", reason: reason || undefined, force }),
+        body: JSON.stringify({ mode: "WEB", reason: reason || undefined, force, screen, groupId }),
       });
       const data = await res.json();
       if (res.status === 409 && data?.error?.code === "SESSION_IN_USE") {
@@ -132,18 +154,24 @@ export function RfbViewer({ computerId }: { computerId: string }) {
       try {
         const url = new URL(info.wsUrl, window.location.href);
         const wssUrl = `${url.protocol === "https:" ? "wss" : "ws"}://${url.host}${url.pathname}${url.search}`;
-        const instrument = instrumentWebSocket();
-        instrumentRef.current = instrument;
+        const instrument = embedded
+          ? { restore: () => undefined, lastClose: () => ({ code: 0, reason: "" }) }
+          : instrumentWebSocket();
         const novncUrl = "/novnc/core/rfb.js";
-        const mod = (await import(
-          /* webpackIgnore: true */ novncUrl
-        )) as unknown as RfbModule;
+        let rfb: RfbConnection;
+        try {
+          const mod = (await import(
+            /* webpackIgnore: true */ novncUrl
+          )) as unknown as RfbModule;
 
-        if (!screenRef.current) return;
-        const rfb = new mod.default(screenRef.current, wssUrl, {
-          credentials: { password: info.password ?? "" },
-          wsProtocols: ["binary"],
-        });
+          if (!screenRef.current) throw new Error("Contenedor noVNC no disponible");
+          rfb = new mod.default(screenRef.current, wssUrl, {
+            credentials: { password: info.password ?? "" },
+            wsProtocols: ["binary"],
+          });
+        } finally {
+          instrument.restore();
+        }
         rfb.scaleViewport = true;
         rfb.resizeSession = false;
         rfb.qualityLevel = 6;
@@ -156,7 +184,6 @@ export function RfbViewer({ computerId }: { computerId: string }) {
         });
         rfb.addEventListener("disconnect", () => {
           const close = instrument.lastClose();
-          instrument.restore();
           setStatus("ended");
           setStartedAt(null);
           if (close.code && CLOSE_MESSAGES[close.code]) {
@@ -197,12 +224,13 @@ export function RfbViewer({ computerId }: { computerId: string }) {
             })
             .catch(() => undefined);
         });
-      } catch {
+      } catch (err) {
+        console.error("[rfb] error al iniciar la conexión", err);
         setStatus("error");
         setMessage("No se pudo cargar el visor noVNC.");
       }
     },
-    [computerId, reason],
+    [computerId, embedded, groupId, reason, screen],
   );
 
   useEffect(() => {
@@ -228,10 +256,29 @@ export function RfbViewer({ computerId }: { computerId: string }) {
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [session]);
 
+  useEffect(() => {
+    if (!groupId) return;
+    const channel = new BroadcastChannel(`puestomap-group-${groupId}`);
+    channel.onmessage = (event) => {
+      if (event.data === "disconnect") rfbRef.current?.disconnect();
+    };
+    return () => channel.close();
+  }, [groupId]);
+
+  function disconnectAll() {
+    rfbRef.current?.disconnect();
+    if (groupId) {
+      const channel = new BroadcastChannel(`puestomap-group-${groupId}`);
+      channel.postMessage("disconnect");
+      channel.close();
+    }
+    if (!embedded) window.close();
+  }
+
   const rfb = rfbRef.current;
 
   return (
-    <div className="flex h-screen flex-col bg-black text-white">
+    <div className={`flex flex-col bg-black text-white ${embedded ? "h-full min-h-0" : "h-screen"}`}>
       <div className="flex flex-wrap items-center gap-2 border-b border-white/20 px-3 py-2 text-sm">
         <span className="font-semibold">{session?.hostname ?? "Asistencia remota"}</span>
         {session?.screenLabel ? <span className="text-white/70">· {session.screenLabel}</span> : null}
@@ -260,6 +307,11 @@ export function RfbViewer({ computerId }: { computerId: string }) {
             <Send className="h-4 w-4" />
             Ctrl+Alt+Supr
           </Button>
+          {groupId ? (
+            <Button size="sm" variant="destructive" onClick={disconnectAll} title="Cerrar todas las sesiones del grupo">
+              <LogOut className="h-4 w-4" /> Desconectar todas
+            </Button>
+          ) : null}
           <Button
             size="sm"
             variant="ghost"
@@ -320,8 +372,7 @@ export function RfbViewer({ computerId }: { computerId: string }) {
             size="sm"
             variant="destructive"
             onClick={() => {
-              rfb?.disconnect();
-              window.close();
+              disconnectAll();
             }}
             title="Desconectar"
           >
@@ -339,8 +390,7 @@ export function RfbViewer({ computerId }: { computerId: string }) {
             variant="outline"
             className="ml-auto"
             onClick={() => {
-              rfb?.disconnect();
-              window.close();
+              disconnectAll();
             }}
           >
             Desconectar
@@ -418,6 +468,26 @@ export function RfbViewer({ computerId }: { computerId: string }) {
       ) : null}
 
       <div ref={screenRef} className="min-h-0 flex-1 bg-black" />
+    </div>
+  );
+}
+
+export function RfbMosaic({
+  computerId,
+  screens,
+  groupId,
+}: {
+  computerId: string;
+  screens: { index: number; label: string }[];
+  groupId: string;
+}) {
+  return (
+    <div className="grid h-screen gap-1 bg-slate-950 p-1 md:grid-cols-2">
+      {screens.map((screen) => (
+        <div key={screen.index} className="min-h-0 overflow-hidden rounded border border-white/20" tabIndex={0}>
+          <RfbViewer computerId={computerId} screen={screen.index} groupId={groupId} embedded />
+        </div>
+      ))}
     </div>
   );
 }

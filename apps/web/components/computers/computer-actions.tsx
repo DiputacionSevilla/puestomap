@@ -11,6 +11,8 @@ export type ComputerActionTarget = {
   ip: string | null;
   vncPort?: number;
   placed?: boolean;
+  multiState?: "SINGLE" | "MULTI_OK" | "MULTI_PENDING";
+  screens?: { index: number; label: string; port: number; enabled: boolean }[];
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -33,15 +35,16 @@ export function ComputerActions({
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [blockedGroup, setBlockedGroup] = useState<string | null>(null);
 
-  async function openNative() {
+  async function openNative(screen: number | "desktop" = "desktop") {
     setBusy(true);
     setError(null);
     try {
       const res = await fetch(`/api/computers/${computer.id}/sessions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "NATIVE" }),
+        body: JSON.stringify({ mode: "NATIVE", screen }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -52,6 +55,21 @@ export function ComputerActions({
     } finally {
       setBusy(false);
     }
+  }
+
+  function openAllWindows() {
+    const group = crypto.randomUUID();
+    const screens = (computer.screens ?? []).filter((screen) => screen.enabled);
+    let blocked = false;
+    for (const screen of screens) {
+      const popup = window.open(
+        `/remote/${computer.id}?screen=${screen.index}&group=${group}`,
+        `puestomap-${computer.id}-${screen.index}`,
+      );
+      if (popup) popup.opener = null;
+      else blocked = true;
+    }
+    setBlockedGroup(blocked ? group : null);
   }
 
   async function copyPassword() {
@@ -77,18 +95,30 @@ export function ComputerActions({
       <div className={compact ? "flex flex-wrap gap-1" : "flex flex-wrap gap-2"}>
         {canAssist ? (
           <>
-            <Button
-              size={compact ? "sm" : "default"}
-              onClick={() => window.open(`/remote/${computer.id}`, "_blank", "noopener")}
-              title="Asistencia en el navegador (noVNC)"
-            >
-              <MonitorPlay className="h-4 w-4" />
-              Asistencia
-            </Button>
+            {computer.multiState === "MULTI_OK" ? (
+              <div className="flex items-stretch">
+                <Button size={compact ? "sm" : "default"} className="rounded-r-none" onClick={openAllWindows} title="Abrir una ventana por pantalla">
+                  <MonitorPlay className="h-4 w-4" /> Asistencia
+                </Button>
+                <details className="relative">
+                  <summary className="flex h-full cursor-pointer list-none items-center rounded-r-md border-l border-primary-foreground/30 bg-primary px-2 text-primary-foreground">▾</summary>
+                  <div className="absolute right-0 z-50 mt-1 w-64 rounded-md border bg-popover p-1 text-sm text-popover-foreground shadow-md">
+                    <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-accent" onClick={openAllWindows}>Todas las pantallas (ventanas)</button>
+                    <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-accent" onClick={() => window.open(`/remote/${computer.id}?screens=all&layout=tiles&group=${crypto.randomUUID()}`, "_blank", "noopener")}>Todas las pantallas (mosaico)</button>
+                    {(computer.screens ?? []).filter((screen) => screen.enabled).map((screen) => <button key={screen.index} className="block w-full rounded px-2 py-1.5 text-left hover:bg-accent" onClick={() => window.open(`/remote/${computer.id}?screen=${screen.index}`, "_blank", "noopener")}>{screen.label}</button>)}
+                    <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-accent" onClick={() => window.open(`/remote/${computer.id}?screen=desktop`, "_blank", "noopener")}>Escritorio completo (unido)</button>
+                  </div>
+                </details>
+              </div>
+            ) : (
+              <Button size={compact ? "sm" : "default"} onClick={() => window.open(`/remote/${computer.id}`, "_blank", "noopener")} title="Asistencia en el navegador (noVNC)">
+                <MonitorPlay className="h-4 w-4" /> Asistencia
+              </Button>
+            )}
             <Button
               size={compact ? "sm" : "default"}
               variant="outline"
-              onClick={openNative}
+              onClick={() => void openNative()}
               disabled={busy}
               title="Abrir con TightVNC Viewer (protocolo tightvnc://)"
             >
@@ -118,6 +148,14 @@ export function ComputerActions({
         ) : null}
       </div>
       {notice ? <p className="text-xs text-green-600">{notice}</p> : null}
+      {computer.multiState === "MULTI_PENDING" ? <p className="text-xs text-amber-700">Este equipo parece tener varias pantallas sin configurar.</p> : null}
+      {blockedGroup ? (
+        <div className="rounded border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900">
+          El navegador bloqueó alguna ventana. Permite ventanas emergentes o ábrelas aquí:
+          <div className="mt-1 flex flex-wrap gap-1">{(computer.screens ?? []).filter((screen) => screen.enabled).map((screen) => <Button key={screen.index} size="sm" variant="outline" onClick={() => window.open(`/remote/${computer.id}?screen=${screen.index}&group=${blockedGroup}`, "_blank", "noopener")}>{screen.label}</Button>)}</div>
+        </div>
+      ) : null}
+      {computer.multiState === "MULTI_OK" ? <div className="flex flex-wrap gap-1 text-xs"><button className="underline" onClick={() => void openNative("desktop")}>Nativo: escritorio</button>{(computer.screens ?? []).filter((screen) => screen.enabled).map((screen) => <button className="underline" key={screen.index} onClick={() => void openNative(screen.index)}>Nativo: {screen.label}</button>)}</div> : null}
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
     </div>
   );

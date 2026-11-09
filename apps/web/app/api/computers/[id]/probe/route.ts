@@ -2,6 +2,7 @@ import { getPrisma } from "@puestomap/db";
 import { applyProbeResult, deriveVncState } from "@puestomap/shared";
 import { probeComputer } from "@puestomap/shared/probe";
 import { ApiError, errorResponse, jsonOk, requireRole } from "@/lib/api";
+import { discoverComputerScreens } from "@/lib/screens";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,9 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
       probeOptionsFromEnv(),
     );
     const update = applyProbeResult(computer, result);
+    if (result.online === true && ((computer.monitorCount ?? 0) > 1 || computer.screens.length > 0)) {
+      await discoverComputerScreens(id);
+    }
     const updated = await prisma.computer.update({
       where: { id },
       data: update,

@@ -72,3 +72,18 @@ Formato: contexto / decisión / consecuencias.
   timeouts inyectados (el transporte es inyectable, como en `createGateway`).
 - `@tanstack/react-table` no se usa: la paginación es en servidor y la tabla HTML es suficiente.
 
+
+## ADR-008 — GLPI como fuente de verdad; PuestoMap como consola de asistencia remota (CR-02, 2026-11-09)
+- **Contexto**: GLPI 10.0.0 (inventario nativo e incidencias) y OCS ya están en uso y sus datos no están
+  al día. PuestoMap v1+CR-01 se estaba convirtiendo en un tercer inventario (estructura, usuarios y
+  equipos por CSV), aumentando la dispersión y el mantenimiento.
+- **Decisión**: cada dato tiene un único dueño. GLPI es dueño del inventario (equipos, lugares,
+  usuarios); PuestoMap solo de asistencia remota (VNC, sondeo, sesiones, auditoría) y de la
+  representación gráfica (plano, `rect`, posición). Sincronización GLPI→PuestoMap **solo lectura** por
+  API REST clásica (`apirest.php`) con cuenta de servicio; única escritura permitida (con flags): la
+  ubicación (RF-25) y el seguimiento de ticket (RF-26). OCS deja de ser fuente (`INVENTORY_SOURCE=glpi`) y
+  su código se retira tras validar. Ver `puestomap-sdd/specs/11-integracion-glpi.md` (prevalece sobre 00–10).
+- **Consecuencias**: se pierden el alta/edición manual y las cargas CSV de equipos, estructura y
+  directorio (se ocultan, luego se borran); T-20 (mapper OCS), T-41 y T-63 quedan sustituidas por F9.
+  Si se pierde la BD de PuestoMap, el inventario sigue en GLPI. Dependencia nueva: disponibilidad de la
+  API de GLPI y del DNS interno hacia el servidor (lección del bloqueo Fortinet de `glpi-incidencias-movil`).

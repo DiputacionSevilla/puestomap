@@ -156,3 +156,17 @@ PLANTA;;Primera;CASA-CONSIST;;1;
 DEPARTAMENTO;INTERV;Intervención;;;;
 DESPACHO;P1-07;Despacho Intervención;CASA-CONSIST;Primera;;INTERV
 ```
+
+
+---
+
+## CR-01 (specs/10 §5) — integraciones
+
+- §1.2 mapper OCS: además rellena `lastUserNorm` (`normalizeAdUser(lastUser)`).
+- §6.1 equipos: columna opcional `usuario_dominio` (alias `usuario`); lectura de columnas **por
+  cabecera** (sin mayúsculas/tildes); reglas completas en specs/10 §5.2 (creación de equipos,
+  IP gestionada por OCS, despacho inferido, errores.csv, idempotencia).
+- §5.1 estructura: columnas `rect_*` opcionales para despachos; upsert por clave natural con
+  `normKey`; nunca borra.
+- Nueva §8: `ad-usuarios.csv` (SamAccountName;DisplayName;GivenName;Surname;Department;Title;
+  Office;TelephoneNumber) y planos SVG validados según specs/10 §5.4.

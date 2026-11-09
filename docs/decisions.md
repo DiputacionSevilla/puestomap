@@ -50,3 +50,25 @@ Formato: contexto / decisión / consecuencias.
   El paquete npm queda como referencia de versión.
 - **Consecuencias**: el visor no depende del bundler; hay que recordar ejecutar `postinstall` tras
   cambiar la versión de noVNC.
+
+## ADR-006 — CR-01 incorporado (2026-11-09)
+- **Contexto**: durante la ejecución se incorpora `puestomap-sdd/specs/10-ubicaciones-planos-usuarios.md`
+  (CR-01: carga de ubicaciones, planos y usuarios del dominio). Precedencia: donde contradiga a 02–09,
+  prevalece.
+- **Decisión**: se adopta CR-01 completo. Las tareas previas ya ejecutadas (T-05…T-16) se completan con
+  el delta en la fase **F8** (T-50…T-64). Las tareas aún no ejecutadas (mapa T-23…T-27, gateway/visor
+  T-28/T-30, worker T-19) se implementan ya con el delta integrado (regla §0.7 de CR-01). Orden:
+  P0 primero, después P1; P2 solo si se pide.
+- **Consecuencias**: migraciones Prisma aditivas; funciones nuevas puras en `packages/shared` con tests;
+  fixtures sintéticos en `fixtures/carga-ayto/`; los CSV reales de carga no se versionan (`data/carga/`).
+
+## ADR-007 — Decisiones menores de implementación
+- `computeVncInstalled` regla 3 (02 §3): el origen se marca `OCS` porque la evidencia principal es el
+  inventario reciente sin TightVNC; el rechazo del puerto lo confirma.
+- Bloqueo de cuenta (RF-01 CA-2): el contador de intentos fallidos se reinicia con el éxito o al
+  caducar el bloqueo; la ventana de 10 min se aproxima usando la marca de tiempo del último intento.
+- `probeComputer` (05 §2): "conecta o rechaza" cuenta como host vivo (RF-09 CA-2). En loopback un puerto
+  cerrado responde con RST, así que el caso T-I1 "puertos online cerrados → online=false" se prueba con
+  timeouts inyectados (el transporte es inyectable, como en `createGateway`).
+- `@tanstack/react-table` no se usa: la paginación es en servidor y la tabla HTML es suficiente.
+

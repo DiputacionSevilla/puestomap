@@ -57,3 +57,12 @@ Con red real, antes de dar por cerrada la v1:
 | T-U11 | `shared/screens` | `deriveMultiState` (SINGLE / MULTI_OK / MULTI_PENDING); validación de puertos (rango, duplicados, máx. 4); mapper OCS cuenta `monitors` |
 | T-I2 (g) | Gateway | la conexión usa el `targetPort` de la sesión; `targetPort` fuera de `VNC_ALLOWED_PORTS` → 4403 |
 | T-I4 | Descubrimiento | dos servidores RFB falsos en puertos distintos → se crean 2 `ComputerScreen`; uno deja de responder → la pantalla `PROBE` se deshabilita tras el plazo; las `MANUAL` no se tocan |
+
+
+---
+
+## CR-01 (specs/10 §10) — tests añadidos
+
+T-U12 (normKey/normName/suggestDirectoryUsers), T-U13 (normalizeAdUser/deriveUserMatch),
+T-U14 (validateSvg), T-U15 (findOfficeAt/aspectChanged), T-U10+ (importaciones ampliadas),
+T-I5 (aceptación con fixtures/carga-ayto), T-I6 (identidad del gateway), T-E2 (opcional).

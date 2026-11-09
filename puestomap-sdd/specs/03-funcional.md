@@ -113,3 +113,16 @@ Diseño técnico en `09-multipantalla.md`.
 - CA-7: El aviso `SESSION_IN_USE` solo se produce por sesiones activas de otros usuarios en cualquier puerto del equipo.
 - CA-8: Filtro "Multipantalla pendiente de configurar" (`monitorCount > 1` y < 2 pantallas habilitadas) en el listado y KPI en el dashboard.
 - CA-9: Modo nativo: un enlace `tightvnc://ip:puerto` por pantalla y otro para el escritorio completo.
+
+
+---
+
+## CR-01 (specs/10 §4) — nuevos requisitos
+
+- **RF-16** Carga inicial (asistente `/importar/carga-inicial`): 4 pasos (estructura, planos,
+  directorio, equipos) con previsualización, informes e idempotencia (specs/10 §4 RF-16).
+- **RF-17** Directorio de usuarios del dominio y campo `adUsername` con autocompletado y sugerencias.
+- **RF-18** Calidad de datos (`/calidad` + `/api/quality` + export CSV por check).
+- **RF-19** Verificación de identidad del equipo en la asistencia (resolución DNS, `desktopname`).
+- Deltas a RF-02/03/04/05/10/12: ver tabla "Deltas a requisitos existentes" de specs/10 §4.
+  Precedencia: specs/10.

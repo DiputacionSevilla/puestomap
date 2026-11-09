@@ -179,3 +179,11 @@ Smoke post-despliegue: `scripts/smoke.ps1` y `scripts/smoke.sh` comprueban
   retención 14 días.
 - Copia del volumen `uploads` (planos).
 - Guardar `VNC_ENC_KEY` y `.env` en el gestor de secretos del departamento.
+
+
+---
+
+## CR-01 (specs/10 §9) — variables nuevas
+
+`LASTUSER_IGNORE=system`, `TARGET_RESOLUTION=dns_first` (dns_first | ip_first), `DNS_SUFFIX=`,
+`SVG_MAX_MB=2`. Añadir `data/carga/` al `.gitignore` (CSV reales de carga, no versionar).

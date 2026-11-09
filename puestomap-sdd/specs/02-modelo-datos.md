@@ -260,3 +260,16 @@ Cálculo de `vncInstalled` (worker, tras cada sync/sondeo):
 2. Si no, si el inventario OCS (≤ 30 días) contiene un software que coincide con `/tightvnc/i` → `YES` (src `OCS`).
 3. Si no, si el inventario OCS es reciente (≤ 30 días), no contiene TightVNC **y** el último sondeo con `online = true` obtuvo conexión rechazada en el puerto VNC → `NO`.
 4. En otro caso → `UNKNOWN`.
+
+
+---
+
+## CR-01 (specs/10 §3) — delta de modelo
+
+- `Computer` añade `adUsername` (usuario de dominio asignado, minúsculas) y `lastUserNorm`
+  (`lastUser` de OCS normalizado), con índices. Modelo nuevo `DirectoryUser` (directorio importado
+  de AD). `RemoteSession` añade `desktopName`, `identityOk` y `resolvedBy`.
+- Migración aditiva `cr01_ubicaciones_usuarios` (solo ADD COLUMN / CREATE TABLE) + backfill de
+  `lastUserNorm`. `adUsername` sin FK (enlace blando por `username`).
+- DM-2 ampliada: OCS escribe `lastUser` y `lastUserNorm`; **nunca** `adUsername`.
+- Precedencia: donde specs/10 contradiga a este documento, prevalece specs/10.

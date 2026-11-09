@@ -76,3 +76,14 @@ Convenciones:
 Sin cola externa: la web escribe peticiones en `Setting` (`ocs.requestedAt`) o, para sondeos
 inmediatos, ejecuta el sondeo **en el propio proceso web** usando la función compartida
 `probeComputer()` de `packages/shared` (es una operación corta y acotada por timeout).
+
+
+---
+
+## CR-01 (specs/10 §6) — rutas nuevas
+
+`/api/import/structure|computers|plans|directory` (preview/commit con las reglas de specs/10 §5),
+`/api/import/runs/:id/errors.csv`, `/api/directory` (GET users/suggest, DELETE),
+`/api/quality` y `/api/quality/:check.csv`, `POST /api/sessions/:id/identity`.
+`PATCH /api/computers/:id` acepta `adUsername`; `GET /api/computers` acepta `check`.
+Precedencia: specs/10.

@@ -161,6 +161,7 @@ export default async function MapaPage({
         departments={departments}
         canEdit={session.user.role !== "VIEWER"}
         focusId={params.focus ?? null}
+        glpiWriteback={process.env.GLPI_WRITEBACK_LOCATION === "true"}
         unplaced={unplaced}
       />
     </div>

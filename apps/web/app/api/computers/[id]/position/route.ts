@@ -13,13 +13,20 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     const input = await parseBody(req, computerPositionSchema);
     const prisma = getPrisma();
 
-    const current = await prisma.computer.findUnique({ where: { id }, select: { id: true, hostname: true } });
+    const current = await prisma.computer.findUnique({ where: { id }, select: { id: true, hostname: true, glpiId: true } });
     if (!current) throw new ApiError(404, "NOT_FOUND", "Equipo no encontrado");
 
     const placement = await validatePlacement(input);
+    // RF-25: solo con el flag activo, equipo enlazado, confirmación del técnico y despacho con lugar GLPI.
+    let glpiLocationTarget: number | undefined;
+    if (process.env.GLPI_WRITEBACK_LOCATION === "true" && input.glpiWriteback === true && current.glpiId !== null && placement.officeId) {
+      const office = await prisma.office.findUnique({ where: { id: placement.officeId }, select: { glpiLocationId: true } });
+      if (office?.glpiLocationId) glpiLocationTarget = office.glpiLocationId;
+    }
     await prisma.computer.update({
       where: { id },
       data: {
+        ...(glpiLocationTarget !== undefined ? { glpiLocationTarget } : {}),
         floorId: placement.floorId,
         officeId: placement.officeId,
         departmentId: placement.departmentId ?? undefined,
@@ -38,6 +45,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
         posX: placement.posX,
         posY: placement.posY,
         officeId: placement.officeId,
+        ...(glpiLocationTarget !== undefined ? { glpiLocationPending: glpiLocationTarget } : {}),
       },
       ip: clientIp(req),
     });

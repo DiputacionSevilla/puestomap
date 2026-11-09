@@ -82,6 +82,7 @@ export const computerPositionSchema = z.object({
   posX: coordSchema,
   posY: coordSchema,
   officeId: z.string().cuid().nullish(),
+  glpiWriteback: z.boolean().optional(),
 });
 
 export const computerBulkSchema = z

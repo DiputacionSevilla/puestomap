@@ -152,6 +152,7 @@ model Computer {
   glpiSyncedAt     DateTime?
   glpiState        String?
   glpiUserName     String?
+  glpiLocationTarget Int?            // RF-25: lugar pendiente de escribir en GLPI
   lastInventoryAt  DateTime?
   assignedTo       String?
   phoneExt         String?

@@ -12,6 +12,7 @@ import {
   type GlpiUser,
   type LocationPlan,
 } from "../glpi/mapper.js";
+import { flushLocationWrites } from "../glpi/writeback.js";
 import { buildGlpiComputerData, glpiDataChanged } from "./glpi-merge.js";
 
 type Rec = Record<string, unknown>;
@@ -233,6 +234,14 @@ export async function runGlpiSync(options: GlpiSyncOptions = {}): Promise<GlpiSy
 
   try {
     const client = options.client ?? glpiClientFromEnv(env);
+    // 0) RF-25: primero se envían los lugares pendientes (así el sync no los pisa).
+    if (!shadow && env.GLPI_WRITEBACK_LOCATION === "true") {
+      try {
+        await flushLocationWrites(prisma, client);
+      } catch (error) {
+        console.error(JSON.stringify({ level: "error", event: "glpi.writeback.session_failed", error: errorMessage(error) }));
+      }
+    }
     // 1) Todo se lee de GLPI ANTES de escribir nada: si GLPI falla, no se archiva ni se cambia nada.
     const fetched = await client.withSession((api) => fetchFromGlpi(api, env));
     stats.errors += fetched.failed;
@@ -287,7 +296,9 @@ export async function runGlpiSync(options: GlpiSyncOptions = {}): Promise<GlpiSy
           };
         }
 
-        const data = buildGlpiComputerData(byName as Record<string, unknown> | null, mapped, location, now);
+        // Si hay un lugar pendiente de enviar a GLPI, la ubicación local manda hasta que se envíe.
+        const pendingWrite = (byName as { glpiLocationTarget?: number | null } | null)?.glpiLocationTarget != null;
+        const data = buildGlpiComputerData(byName as Record<string, unknown> | null, mapped, pendingWrite ? null : location, now);
         if (!byName) {
           if (shadow) report.wouldCreate.push(mapped.hostname);
           else await prisma.computer.create({ data: data as never });

@@ -102,5 +102,5 @@ Orden: T-70 `[STOP]` → P0 → P1. P2 solo si se pide. Antes de empezar: el hum
 - [x] T-78 Calidad redefinida (RF-24) con enlaces «Corregir en GLPI».
 - [ ] T-79 (P1, **tras 2 semanas estables**, con confirmación) Retirar sync OCS, mapper, importaciones/asistente legados y columnas `ocs*` (migración destructiva ⇒ backup `pg_dump` primero).
 - [ ] T-80 `[STOP]` Corte (specs/11 §9): modo sombra con GLPI real, validar informe, activar sync, colocar puestos, probar asistencia remota; el agente anota hallazgos en `docs/progress.md`.
-- [ ] T-81 (P1) Escritura de ubicación a GLPI con flag (RF-25) + T-I10.
+- [x] T-81 (P1) Escritura de ubicación a GLPI con flag (RF-25) + T-I10.
 - [ ] T-82 (P2, solo si se pide) Seguimiento en el ticket al cerrar sesión (RF-26); departamentos desde Grupos; «TightVNC instalado» desde software de GLPI.

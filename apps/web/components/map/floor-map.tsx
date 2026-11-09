@@ -54,6 +54,7 @@ type Props = {
   canEdit: boolean;
   focusId?: string | null;
   unplaced: MapComputer[];
+  glpiWriteback?: boolean;
 };
 
 const STATE_COLORS: Record<VncUiState, { fill: string; border: string; shape: string }> = {
@@ -87,6 +88,7 @@ export function FloorMap({
   canEdit,
   focusId,
   unplaced: initialUnplaced,
+  glpiWriteback = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -307,10 +309,16 @@ export function FloorMap({
         pos.posY,
       );
       const previousOffice = target.officeId;
+      const officeChanged = officeId !== null && officeId !== previousOffice;
+      const sendToGlpi = glpiWriteback && officeChanged &&
+        window.confirm("Se actualizará también el lugar en GLPI. ¿Continuar?");
       const res = await fetch(`/api/computers/${computerId}/position`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ floorId, posX: pos.posX, posY: pos.posY, officeId }),
+        body: JSON.stringify({
+          floorId, posX: pos.posX, posY: pos.posY, officeId,
+          ...(sendToGlpi ? { glpiWriteback: true } : {}),
+        }),
       });
       if (!res.ok) return;
       setComputers((prev) =>
@@ -347,7 +355,7 @@ export function FloorMap({
         setTimeout(() => setToast(null), 8000);
       }
     },
-    [computers, offices, floorId],
+    [computers, offices, floorId, glpiWriteback],
   );
 
   useEffect(() => {

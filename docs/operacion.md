@@ -117,3 +117,17 @@ que escriben, restaurar PostgreSQL con `pg_restore` y reponer el contenido del v
 
 Después de cualquier rotación ejecutar los smokes y comprobar login y apertura del diálogo de
 asistencia, sin iniciar una conexión real fuera de una ventana autorizada.
+
+## Enlace «Asistencia remota» desde GLPI (RF-22)
+
+En GLPI: *Configuración → Enlaces externos → Añadir* (no requiere plugin).
+
+- Nombre: `Asistencia remota`
+- Enlace: `https://<puestomap>/equipos/glpi/[ID]`
+- Tipos de elemento: Equipo
+
+Al pulsarlo desde la ficha de un equipo, PuestoMap pide sesión si hace falta (vuelve al mismo
+destino tras el login) y redirige a la ficha. Si el equipo aún no se ha sincronizado muestra
+«Todavía no sincronizado» sin revelar datos. Variante por nombre: `/equipos/glpi?name=[NAME]`.
+Para los botones «Abrir en GLPI» de PuestoMap, configurar `GLPI_PUBLIC_URL` (con `/glpi`).
+En el visor, un motivo como `#1234` se enlaza al ticket de GLPI en el historial de sesiones.

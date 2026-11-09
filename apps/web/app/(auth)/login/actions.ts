@@ -2,6 +2,7 @@
 
 import { AuthError } from "next-auth";
 import { getPrisma } from "@puestomap/db";
+import { safeCallbackPath } from "@puestomap/shared";
 import { signIn } from "@/auth";
 
 export async function authenticate(
@@ -24,7 +25,7 @@ export async function authenticate(
   }
 
   try {
-    await signIn("credentials", { username, password, redirectTo: "/" });
+    await signIn("credentials", { username, password, redirectTo: safeCallbackPath(formData.get("callbackUrl")) });
     return undefined;
   } catch (error) {
     if (error instanceof AuthError) {

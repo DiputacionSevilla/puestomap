@@ -1,12 +1,14 @@
 "use client";
 
-import { useActionState } from "react";
+import { Suspense, useActionState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { authenticate } from "./actions";
 
-export default function LoginPage() {
+function LoginForm() {
+  const callbackUrl = useSearchParams().get("callbackUrl") ?? "";
   const [error, formAction, pending] = useActionState(authenticate, undefined);
 
   return (
@@ -20,6 +22,7 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <form action={formAction} className="space-y-4">
+            <input type="hidden" name="callbackUrl" value={callbackUrl} />
             <div className="space-y-1.5">
               <Label htmlFor="username">Usuario</Label>
               <Input id="username" name="username" autoComplete="username" required autoFocus />
@@ -46,5 +49,13 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }

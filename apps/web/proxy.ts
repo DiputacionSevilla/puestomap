@@ -12,7 +12,10 @@ export default auth((req) => {
   if (isPublic) return NextResponse.next();
 
   if (!req.auth) {
-    return NextResponse.redirect(new URL("/login", req.nextUrl));
+    const login = new URL("/login", req.nextUrl);
+    const back = `${path}${req.nextUrl.search}`;
+    if (back !== "/") login.searchParams.set("callbackUrl", back);
+    return NextResponse.redirect(login);
   }
 
   const role = req.auth.user?.role;

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, ArchiveRestore, Pencil, Plus, RefreshCw, ScanSearch, Trash2, TriangleAlert } from "lucide-react";
+import { glpiTicketId } from "@puestomap/shared";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox, Input, Select, Textarea, Label } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -614,7 +615,18 @@ export function ComputerDetail({
                       <TableCell>
                         ↓ {formatBytes(Number(session.bytesIn))} · ↑ {formatBytes(Number(session.bytesOut))}
                       </TableCell>
-                      <TableCell>{session.reason ?? session.endReason ?? "—"}</TableCell>
+                      <TableCell>
+                        {glpiPublicUrl && glpiTicketId(session.reason) ? (
+                          <a
+                            className="underline"
+                            href={`${glpiPublicUrl.replace(/\/+$/, "")}/front/ticket.form.php?id=${glpiTicketId(session.reason)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {session.reason}
+                          </a>
+                        ) : (session.reason ?? session.endReason ?? "—")}
+                      </TableCell>
                     </TableRow>
                   ))}
                   {sessions.length === 0 ? (

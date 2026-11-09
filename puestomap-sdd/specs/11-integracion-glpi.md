@@ -40,6 +40,9 @@ OCS pasa a ser un sistema a apagar, no a integrar.
   en lugar de JSON. Por tanto `GLPI_BASE_URL` del worker debe resolverse a la IP privada
   (`extra_hosts` en el compose, o URL interna), y el cliente debe **detectar respuestas no-JSON** y
   fallar con un error claro («GLPI devolvió HTML: revisar DNS/proxy»).
+- Volumen real (panel de GLPI, 2026-11): **144 equipos**, 191 usuarios, 5 grupos. Es un parque
+  pequeño: un barrido completo cada 30 min es barato; no hace falta optimizar más allá de la
+  paginación de §5.3.
 - Existe un proyecto hermano, `Aplicaciones/glpi-incidencias-movil`, con un cliente de la API ya
   probado (`lib/glpi/client.ts`: App-Token, Session-Token, timeout, reintento solo en GET,
   clasificación de errores; y `lib/glpi/search-options.ts`). **Reutilizar su diseño** (copiar y adaptar,
@@ -58,6 +61,7 @@ OCS pasa a ser un sistema a apagar, no a integrar.
 | Calidad de datos redefinida (problemas de GLPI se corrigen en GLPI) | P1 |
 | Escritura a GLPI de la **ubicación** al mover un puesto de despacho en el mapa (flag, desactivada) | P1 |
 | Seguimiento automático en la incidencia de GLPI al cerrar una sesión remota (flag, desactivado) | P2 |
+| Rediseño visual al estilo del panel de GLPI (§12) | P1 |
 | Retirada del sync OCS y del código muerto de importaciones | P1 (tras validar) |
 | Departamentos desde Grupos de GLPI | P2 |
 | «Instalado TightVNC» desde el software inventariado en GLPI | P2 |
@@ -352,3 +356,52 @@ Anonimizar y guardar en `apps/worker/test/fixtures/glpi-*.json`. Hasta entonces,
 | T-I11 | Posiciones CSV (RF-23): idempotente; hostname desconocido ⇒ error |
 
 `npm run verify` debe seguir en verde en cada tarea.
+
+---
+
+## 12. Referencia visual (RF-27, P1)
+
+Referencia: `docs/referencia-visual/glpi-panel-central.png` (captura del panel «Central» de GLPI de
+la casa). El usuario quiere que PuestoMap **se parezca en aspecto y manejo a GLPI**, para que los
+técnicos lo sientan como parte del mismo ecosistema. **Imitar el estilo, no la marca**: no copiar el
+logotipo ni el nombre de GLPI; PuestoMap conserva el suyo.
+
+### 12.1 Lo que se toma de la referencia
+
+| Elemento | En GLPI | En PuestoMap |
+|---|---|---|
+| Menú lateral | Barra fija a la izquierda, **fondo verde azulado oscuro**, texto e iconos blancos, logo arriba, secciones con chevron desplegable, enlace «Plegar menú» abajo | Mismo patrón: sidebar teal con iconos lucide en blanco, activo resaltado con un fondo más claro (no el azul `primary` actual), colapsable a solo iconos y con la preferencia guardada en el navegador |
+| Barra superior | Blanca, migas de pan («Inicio»), **buscador** a la derecha, usuario con rol y avatar de iniciales | Migas + buscador global (Ctrl+K existente) + usuario/rol/avatar de iniciales |
+| Pestañas | Panel / Vista personal / Vista de grupo / Vista global | Inicio: pestañas «Resumen» y «Mi actividad» (sesiones del propio técnico) |
+| Tarjetas KPI | **Bloques de color pastel/saturado con número grande, etiqueta y un icono** en la esquina; cada uno es un enlace | Mismo componente `KpiTile` (ver 12.2) |
+| Gráficos | Donuts con el total en el centro y barras apiladas por mes | Donuts y barras con **SVG/CSS propio** (sin librerías nuevas, regla §10) |
+| Tipografía/densidad | Sans-serif limpia, aire generoso, esquinas casi rectas, tarjetas sin sombra fuerte | Mantener Tailwind; radio pequeño (`--radius: 0.25rem`), sombras suaves |
+
+Para los colores, **muestrear el PNG** (no inventar): verde azulado del menú, y los tonos de las
+tarjetas (verde, rojo, turquesa, azul, naranja, amarillo). Definirlos como variables CSS en
+`globals.css` (`--sidebar`, `--kpi-*`) y mantener el modo claro como principal; el modo oscuro puede
+degradar a los tokens actuales.
+
+### 12.2 Inicio (dashboard) propuesto
+
+Sustituye el contenido actual de `app/(app)/page.tsx`, reutilizando los datos de `/api/stats`:
+
+- Fila de `KpiTile` (clicables hacia `/equipos?...` o `/calidad`):
+  **Equipos** (total) · **Listos para asistencia** (verde, `READY`) · **VNC no escucha** (ámbar) ·
+  **Sin TightVNC** (rojo) · **Apagados/offline** (gris) · **Sin colocar en plano** · **Sesiones activas**
+  · **Sin sincronizar con GLPI** (si `lastSyncAt` es antiguo, en rojo).
+- Donut «Equipos por estado VNC» (total en el centro) y donut «Equipos por edificio».
+- Barras apiladas «Sesiones remotas por mes» (últimos 12 meses; apilar por modo WEB/NATIVE).
+- Tabla corta «Últimas sesiones» y «Equipos que necesitan atención» (los de Calidad más frecuentes),
+  con enlace «Corregir en GLPI» cuando proceda.
+- Las tarjetas muestran estado de carga (esqueleto) y de error; nunca un cero engañoso si la API falla.
+
+### 12.3 Criterios de aceptación
+
+- CA-1: sidebar teal, plegable, con la preferencia recordada; en móvil pasa a menú desplegable.
+- CA-2: el dashboard replica la estructura de 12.2 con datos reales y los enlaces funcionan.
+- CA-3: contraste AA en texto sobre cada color de tarjeta (texto blanco u oscuro según el fondo).
+- CA-4: sin dependencias nuevas; `npm run verify` en verde; captura de antes/después en
+  `docs/referencia-visual/` para revisión humana.
+- CA-5: no se altera el visor remoto ni el mapa más allá de heredar tokens de color/tipografía
+  (invariantes de `AGENTS.md` §5 intactos).

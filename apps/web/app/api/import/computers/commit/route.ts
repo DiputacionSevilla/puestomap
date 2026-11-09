@@ -1,3 +1,4 @@
+import { requireLegacyImport } from "@/lib/legacy";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { computerErrorsCsv, parseCsvTable, validateComputerImport } from "@puestomap/shared";
@@ -11,6 +12,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   try {
     const user = await requireRole("ADMIN");
+    requireLegacyImport();
     const body = (await req.json()) as {
       csv?: string;
       crearEquipos?: boolean;

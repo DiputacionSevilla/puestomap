@@ -1,3 +1,4 @@
+import { legacyImportEnabled } from "@/lib/legacy";
 import { getPrisma } from "@puestomap/db";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function CargaInicialPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
-  if (session.user.role !== "ADMIN") redirect("/importar");
+  if (session.user.role !== "ADMIN" || !legacyImportEnabled()) redirect("/importar");
 
   const prisma = getPrisma();
   const [buildings, floorsWithPlan, computers, directory] = await Promise.all([

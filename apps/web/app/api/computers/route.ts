@@ -1,3 +1,4 @@
+import { requireLegacyImport } from "@/lib/legacy";
 import { getPrisma } from "@puestomap/db";
 import {
   computerCreateSchema,
@@ -75,6 +76,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const user = await requireRole("TECH", "ADMIN");
+    requireLegacyImport();
     const input = await parseBody(req, computerCreateSchema);
     const hostname = normalizeHostname(input.hostname);
     const prisma = getPrisma();

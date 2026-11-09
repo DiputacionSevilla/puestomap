@@ -1,3 +1,4 @@
+import { requireLegacyImport } from "@/lib/legacy";
 import { getPrisma } from "@puestomap/db";
 import { z } from "zod";
 import { ApiError, errorResponse, jsonOk, parseBody, requireRole } from "@/lib/api";
@@ -13,6 +14,7 @@ const directoryCommitSchema = z.object({
 export async function POST(req: Request) {
   try {
     const user = await requireRole("ADMIN");
+    requireLegacyImport();
     const body = await parseBody(req, directoryCommitSchema);
     const rows = await previewDirectory(body.csv);
     const summary = directorySummary(rows);

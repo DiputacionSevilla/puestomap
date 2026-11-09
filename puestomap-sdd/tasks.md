@@ -95,7 +95,7 @@ Orden: T-70 `[STOP]` → P0 → P1. P2 solo si se pide. Antes de empezar: el hum
 - [x] T-72 Cliente GLPI del worker (§5.3), reutilizando el diseño de `glpi-incidencias-movil/lib/glpi/client.ts` + T-U22.
 - [x] T-73 `mapGlpiComputer`/`mergeGlpiComputer` + T-U20/T-U21 y sync de equipos con barrido nocturno, archivado por papelera, `SyncRun` GLPI y modo sombra (§5.4, RF-20) + T-I7.
 - [x] T-74 Lugares → Edificio/Planta/Despacho (§5.5) + T-U23; usuarios → `DirectoryUser` y `adUsername` (§5.6).
-- [ ] T-75 UI solo lectura (RF-21): etiquetas «GLPI», «Abrir en GLPI», `/ajustes` con estado/probar/sincronizar, lista blanca de PATCH reducida + T-I8; ocultar flujos legados tras `LEGACY_IMPORT_ENABLED`.
+- [x] T-75 UI solo lectura (RF-21): etiquetas «GLPI», «Abrir en GLPI», `/ajustes` con estado/probar/sincronizar, lista blanca de PATCH reducida + T-I8; ocultar flujos legados tras `LEGACY_IMPORT_ENABLED`.
 - [ ] T-83 (P1) Rediseño visual al estilo GLPI (specs/11 §12, referencia `docs/referencia-visual/glpi-panel-central.png`): tokens de color muestreados, sidebar teal plegable, barra superior, componente `KpiTile`, donuts/barras en SVG propio y nuevo dashboard. Hacerlo tras T-75 y antes del corte (T-80).
 - [x] T-76 Enlace de vuelta `/equipos/glpi/[id]` y `?name=` + campo motivo con nº de ticket (RF-22) + T-I9; guía del Enlace Externo en `docs/operacion.md`.
 - [x] T-77 `posiciones.csv` (RF-23) + bandeja «Sin colocar» en el mapa + T-I11.

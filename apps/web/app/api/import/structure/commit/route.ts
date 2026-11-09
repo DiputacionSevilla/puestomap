@@ -1,3 +1,4 @@
+import { requireLegacyImport } from "@/lib/legacy";
 import { parseCsvTable, validateStructureImport } from "@puestomap/shared";
 import { errorResponse, jsonOk, requireRole } from "@/lib/api";
 import { audit, clientIp } from "@/lib/audit";
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   try {
     const user = await requireRole("ADMIN");
+    requireLegacyImport();
     const body = (await req.json()) as { csv?: string };
     if (typeof body.csv !== "string" || body.csv.length === 0) {
       return jsonOk({ error: { code: "VALIDATION", message: "Falta el CSV" } }, 422);

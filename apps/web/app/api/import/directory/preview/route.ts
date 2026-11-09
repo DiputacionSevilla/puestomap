@@ -1,9 +1,11 @@
+import { requireLegacyImport } from "@/lib/legacy";
 import { ApiError, errorResponse, jsonOk, requireRole } from "@/lib/api";
 import { directorySummary, previewDirectory } from "@/lib/directory-import";
 
 export async function POST(req: Request) {
   try {
     await requireRole("ADMIN");
+    requireLegacyImport();
     const body = (await req.json()) as { csv?: string };
     if (!body.csv) throw new ApiError(422, "VALIDATION", "Falta el CSV");
     const rows = await previewDirectory(body.csv);

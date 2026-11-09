@@ -34,18 +34,18 @@ criterios de aceptación cumplidos + `npm run verify` en verde + commit.
 - [ ] T-22 Limpieza de sesiones colgadas (RF-11 CA-3).
 
 ## F4 — Mapa
-- [ ] T-23 `/mapa`: selector, plano Leaflet `CRS.Simple`, marcadores por estado, leyenda/contadores, panel de detalle (RF-04 CA-1/2/3/7).
-- [ ] T-24 Buscador en mapa y `?focus=` con resaltado; "Ver en plano" desde listado y ficha; mini-plano en ficha (RF-04 CA-4/8, RF-03 CA-4).
-- [ ] T-25 Modo edición: arrastrar marcadores y ubicar desde "Sin ubicar" con auditoría (RF-04 CA-5).
-- [ ] T-26 Refresco de estados cada 60 s (RF-04 CA-9).
+- [x] T-23 `/mapa`: selector, plano Leaflet `CRS.Simple`, marcadores por estado, leyenda/contadores, panel de detalle (RF-04 CA-1/2/3/7).
+- [x] T-24 Buscador en mapa y `?focus=` con resaltado; "Ver en plano" desde listado y ficha; mini-plano en ficha (RF-04 CA-4/8, RF-03 CA-4).
+- [x] T-25 Modo edición: arrastrar marcadores y ubicar desde "Sin ubicar" con auditoría (RF-04 CA-5).
+- [x] T-26 Refresco de estados cada 60 s (RF-04 CA-9).
 - [ ] T-27 (Opcional) Rectángulos de despacho y propuesta automática de despacho (RF-05 CA-3, RF-04 CA-6).
 
 ## F5 — Asistencia remota
-- [ ] T-28 Gateway con `createGateway` y `sessionStore` Postgres/memoria, validaciones, contadores, ping, timeouts + T-I2 (05 §3, RNF-SEC-4/5/6).
-- [ ] T-29 Endpoint de creación de sesión WEB/NATIVE, conflicto 409, contraseña VNC + T-I3 (RF-06 CA-3, RF-07).
-- [ ] T-30 Página `/remote/[computerId]` con noVNC, barra de herramientas y mensajes de error (RF-06, 06 §5).
-- [ ] T-31 Modo nativo: botón `tightvnc://`, copiar contraseña, `/ayuda/tightvnc`, copiar `extras` a `public/extras` (RF-07).
-- [ ] T-32 Pantalla Sesiones (RF-11 CA-2) y Auditoría (RF-11 CA-1).
+- [x] T-28 Gateway con `createGateway` y `sessionStore` Postgres/memoria, validaciones, contadores, ping, timeouts + T-I2 (05 §3, RNF-SEC-4/5/6).
+- [x] T-29 Endpoint de creación de sesión WEB/NATIVE, conflicto 409, contraseña VNC + T-I3 (RF-06 CA-3, RF-07).
+- [x] T-30 Página `/remote/[computerId]` con noVNC, barra de herramientas y mensajes de error (RF-06, 06 §5).
+- [x] T-31 Modo nativo: botón `tightvnc://`, copiar contraseña, `/ayuda/tightvnc`, copiar `extras` a `public/extras` (RF-07).
+- [x] T-32 Pantalla Sesiones (RF-11 CA-2) y Auditoría (RF-11 CA-1).
 
 ## F5b — Multipantalla (09-multipantalla.md; tras F5, antes de F6)
 - [ ] T-42 `[STOP]` Piloto en un PC con doble monitor (09 §7): validar sintaxis de puertos extra, numeración de pantallas y conexiones simultáneas; guardar `pilot.reg` en `docs/pilot-multimonitor/` y registrar resultados en `docs/decisions.md`. Lo hace el humano; conviene hacerlo antes de empezar F5.
@@ -58,7 +58,7 @@ criterios de aceptación cumplidos + `npm run verify` en verde + commit.
 - [ ] T-49 Con el resultado del piloto: `extras/tightvnc-multimonitor/configurar-pantallas.ps1` (idempotente: puertos extra, regla de firewall, reinicio del servicio `tvnserver`) y guía de despliegue por GPO en `docs/operacion.md`.
 
 ## F6 — Cierre v1
-- [ ] T-33 Dashboard con KPIs y buscador global `Ctrl+K` (RF-12, 06 §1).
+- [x] T-33 Dashboard con KPIs y buscador global `Ctrl+K` (RF-12, 06 §1).
 - [ ] T-34 Cabeceras de seguridad/CSP (RNF-SEC-8), logs JSON (RNF-OPS-4).
 - [ ] T-35 Dockerfile multi-target, `docker-compose.yml`, healthchecks; `docker compose up` local funcional con seed (07).
 - [ ] T-36 Playwright smoke T-E1.
@@ -78,11 +78,11 @@ criterios de aceptación cumplidos + `npm run verify` en verde + commit.
 - [x] T-54 Importación de estructura con `rect_*`, lectura por cabecera, informe y reglas (§5.1) + T-U10+.
 - [x] T-55 Importación de equipos ampliada (§5.2), `errores.csv`, opciones `crearEquipos`/`omitirErrores` + T-U10+.
 - [ ] T-56 Asistente `/importar/carga-inicial` pasos 1, 2 y 4 (RF-16).
-- [ ] T-57 Mapa: despacho automático al soltar (RF-04 CA-6), capa de despachos, tooltip, etiqueta configurable, filtro de departamento (CA-10…13).
+- [x] T-57 Mapa: despacho automático al soltar (RF-04 CA-6), capa de despachos, tooltip, etiqueta configurable, filtro de departamento (CA-10…13).
 - [ ] T-58 Fixtures `fixtures/carga-ayto/` y pruebas de aceptación T-I5 (+ T-E2 opcional).
 - [ ] T-59 Directorio: importación, autocompletado, sugerencias, ficha, búsqueda; paso 3 del asistente (RF-17).
 - [ ] T-60 Listado/ficha/mapa: columna y filtro de usuario, icono de discrepancia, parámetro `check` (RF-02/03).
 - [ ] T-61 `/calidad`, `/api/quality`, export CSV y enlace desde el dashboard (RF-18).
-- [ ] T-62 Identidad del equipo: resolución DNS en el gateway, `desktopname` en el visor, endpoint e iconos (RF-19) + T-I6.
+- [x] T-62 Identidad del equipo: resolución DNS en el gateway, `desktopname` en el visor, endpoint e iconos (RF-19) + T-I6.
 - [ ] T-63 `[STOP]` Carga real: el humano importa estructura, planos y equipos reales y valida con la checklist de §13; el agente anota hallazgos en `docs/progress.md`.
 - [ ] T-64 (P2, solo si se pide) Importar `ad-equipos.csv` como fuente secundaria de hostname/IP.

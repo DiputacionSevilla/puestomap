@@ -43,7 +43,13 @@ export async function requireRole(...roles: AppRole[]): Promise<AuthedUser> {
 }
 
 export function jsonOk<T>(data: T, status = 200): NextResponse {
-  return NextResponse.json(data, { status });
+  const body = JSON.stringify(data, (_key, value) =>
+    typeof value === "bigint" ? value.toString() : value,
+  );
+  return new NextResponse(body, {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
 export function errorResponse(err: unknown): NextResponse {

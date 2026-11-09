@@ -107,7 +107,9 @@ export default async function ComputerPage({
 
       <ComputerDetail
         computer={JSON.parse(JSON.stringify(computer))}
-        sessions={JSON.parse(JSON.stringify(sessions))}
+        sessions={JSON.parse(
+          JSON.stringify(sessions, (_k, v) => (typeof v === "bigint" ? v.toString() : v)),
+        )}
         audits={JSON.parse(JSON.stringify(audits))}
         structure={{
           buildings: structure[0].map((b) => ({

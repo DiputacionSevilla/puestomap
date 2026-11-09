@@ -380,12 +380,32 @@ export function ComputerDetail({
                 />
               </div>
               <p className="mt-3 text-xs text-muted-foreground">
-                La miniatura del plano se implementa con el mapa (F4). Usa{" "}
+                Usa{" "}
                 <a className="underline" href={`/mapa?focus=${computer.id}`}>
                   Ver en plano
                 </a>{" "}
                 para abrir el mapa completo.
               </p>
+              {computer.floorId ? (
+                <div className="mt-3 inline-block overflow-hidden rounded-md border">
+                  <div className="relative w-[360px]">
+                    <img
+                      src={`/api/floors/${computer.floorId}/plan`}
+                      alt="Miniatura del plano de la planta"
+                      className="block w-full"
+                    />
+                    {computer.posX != null && computer.posY != null ? (
+                      <span
+                        className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-red-600"
+                        style={{
+                          left: `${computer.posX * 100}%`,
+                          top: `${computer.posY * 100}%`,
+                        }}
+                      />
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         </TabsContent>

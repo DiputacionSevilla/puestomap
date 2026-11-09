@@ -23,6 +23,7 @@ export const GLPI_OWNED_KEYS = [
   "glpiState",
   "lastInventoryAt",
   "archived",
+  "monitorCount",
 ] as const;
 
 /** Columnas auxiliares que el sync también escribe (ubicación derivada del lugar de GLPI y trazas). */

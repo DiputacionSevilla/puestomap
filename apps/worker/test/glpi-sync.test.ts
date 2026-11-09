@@ -82,6 +82,10 @@ function glpi(computers: Row[], trashed: Row[] = []): GlpiClient {
     async get<T>(path: string) {
       const match = /^Computer\/(\d+)(\/Item_OperatingSystem)?/.exec(path);
       const id = Number(match?.[1]);
+      if (path.includes("/Computer_Item")) {
+        const linked = id === 1 ? [{ itemtype: "Monitor" }, { itemtype: "Monitor", is_deleted: 1 }, { itemtype: "Monitor" }, { itemtype: "Printer" }] : [];
+        return { data: linked as T, headers: new Headers(), status: 200 };
+      }
       const data = match?.[2] ? os : (computers.find((c) => c.id === id) ?? trashed.find((c) => c.id === id));
       return { data: data as T, headers: new Headers(), status: 200 };
     },
@@ -108,6 +112,8 @@ describe("runGlpiSync (T-I7)", () => {
 
     const a = db.computer.rows.find((c) => c.hostname === "PC-A")!;
     const b = db.computer.rows.find((c) => c.hostname === "PC-B")!;
+    expect(a.monitorCount).toBe(2);
+    expect(b.monitorCount).toBe(0);
     const c = db.computer.rows.find((c) => c.hostname === "PC-C")!;
     expect(a.floorId).toBe(db.floor.rows.find((f) => f.glpiLocationId === 22)?.id);
     expect(db.floor.rows.find((f) => f.id === b.floorId)?.name).toBe("Planta única");

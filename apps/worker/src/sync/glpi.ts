@@ -96,7 +96,15 @@ async function fetchFromGlpi(api: GlpiApi, env: Record<string, string | undefine
       const id = Number(row.id);
       const detail = await api.get<Rec>(`Computer/${id}?with_networkports=true&with_devices=true`);
       const os = await api.get<Rec[]>(`Computer/${id}/Item_OperatingSystem?expand_dropdowns=true`);
-      const mapped = mapGlpiComputer(detail.data, lookups, options, Array.isArray(os.data) ? os.data : []);
+      // Monitores enlazados (alimenta la detección de equipos multipantalla). Si falla no se pisa el valor guardado.
+      let monitors: Rec[] | null = null;
+      try {
+        const linked = await api.get<Rec[]>(`Computer/${id}/Computer_Item`);
+        monitors = Array.isArray(linked.data) ? linked.data : null;
+      } catch (error) {
+        console.warn(JSON.stringify({ level: "warn", event: "glpi.monitors.unavailable", glpiId: id, error: errorMessage(error) }));
+      }
+      const mapped = mapGlpiComputer(detail.data, lookups, options, Array.isArray(os.data) ? os.data : [], monitors);
       computers.push({ mapped, template: Number(row.is_template) === 1 });
     } catch (error) {
       failed += 1;

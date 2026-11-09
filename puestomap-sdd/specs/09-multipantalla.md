@@ -33,7 +33,8 @@ Máximo soportado: 4 pantallas. La misma contraseña VNC sirve para todos los pu
 
 ## 3. Detección y descubrimiento
 
-1. **Pista desde OCS**: `monitorCount` = nº de elementos de la sección `monitors` del inventario.
+1. **Pista desde GLPI** (OCS retirado, CR-02): `monitorCount` = nº de `Computer_Item` de tipo `Monitor` no borrados
+   (`GET Computer/{id}/Computer_Item`). Si la consulta falla, el valor guardado no se pisa.
    Es solo una pista (puede incluir monitores desconectados o la pantalla interna de un portátil).
 2. **Descubrimiento por sondeo** (worker, cada 6 h y bajo demanda):
    - Candidatos: equipos `online` con `monitorCount > 1` o que ya tengan pantallas.

@@ -47,9 +47,16 @@ export type GlpiComputerUpsert = {
   glpiState: string | null;
   lastInventoryAt: Date | null;
   archived: boolean;
+  /** Nº de monitores enlazados en GLPI; ausente si no se pudo consultar (no se sobrescribe). */
+  monitorCount?: number;
   /** Lugar de GLPI (id); la resolución a planta/despacho la hace el sync. */
   glpiLocationId: number | null;
 };
+
+/** Cuenta los monitores enlazados (Computer_Item con itemtype Monitor y no borrados) de un equipo. */
+export function countGlpiMonitors(items: Rec[]): number {
+  return items.filter((item) => item.itemtype === "Monitor" && int(item.is_deleted) !== 1).length;
+}
 
 function rec(value: unknown): Rec {
   return value !== null && typeof value === "object" && !Array.isArray(value) ? (value as Rec) : {};
@@ -138,6 +145,7 @@ export function mapGlpiComputer(
   lookups: GlpiLookups,
   options: GlpiMapOptions = {},
   osItems: Rec[] = [],
+  monitorItems: Rec[] | null = null,
 ): GlpiComputerUpsert {
   const glpiId = positiveId(computer.id);
   const name = text(computer.name);
@@ -194,6 +202,7 @@ export function mapGlpiComputer(
     glpiState: stateId !== null ? (lookups.states.get(stateId) ?? null) : null,
     lastInventoryAt: parseGlpiDate(computer.last_inventory_update),
     archived: int(computer.is_deleted) === 1,
+    ...(monitorItems ? { monitorCount: countGlpiMonitors(monitorItems) } : {}),
     glpiLocationId: positiveId(computer.locations_id),
   };
 }

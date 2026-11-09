@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   buildLocationPlan,
+  countGlpiMonitors,
   mapGlpiComputer,
   parseGlpiLocations,
   parseGlpiUsers,
@@ -138,5 +139,23 @@ describe("buildLocationPlan (T-U23) con los lugares reales", () => {
       { id: 2, name: "B", locations_id: 1, level: 2 },
     ]);
     expect(buildLocationPlan(loop).nodes).toEqual([]);
+  });
+
+  it("cuenta solo los monitores enlazados y no borrados", () => {
+    expect(countGlpiMonitors([])).toBe(0);
+    expect(
+      countGlpiMonitors([
+        { itemtype: "Monitor", is_deleted: 0 },
+        { itemtype: "Monitor", is_deleted: "1" },
+        { itemtype: "Printer" },
+        { itemtype: "Monitor" },
+      ]),
+    ).toBe(2);
+  });
+
+  it("no informa monitorCount si no se pudo consultar (no pisa el valor guardado)", () => {
+    const lookups: GlpiLookups = { users: new Map(), manufacturers: new Map(), models: new Map(), states: new Map() };
+    expect("monitorCount" in mapGlpiComputer(computer, lookups)).toBe(false);
+    expect(mapGlpiComputer(computer, lookups, {}, [], [{ itemtype: "Monitor" }, { itemtype: "Monitor" }]).monitorCount).toBe(2);
   });
 });

@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.next/
+out/
+coverage/
+.env
+.env.local
+uploads/
+*.tsbuildinfo
+test-results/
+playwright-report/
+packages/db/prisma/migrations/**/migration_lock.toml.bak

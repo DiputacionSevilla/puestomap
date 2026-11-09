@@ -565,7 +565,7 @@ export function FloorMap({
         {canEdit ? (
           <div className="rounded-lg border bg-card p-3">
             <h3 className="mb-2 text-sm font-semibold">
-              Sin ubicar ({unplaced.length})
+              Sin colocar ({unplaced.length})
             </h3>
             <ul className="space-y-1 text-sm">
               {unplaced.map((computer) => (

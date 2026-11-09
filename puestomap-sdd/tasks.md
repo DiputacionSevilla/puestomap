@@ -98,7 +98,7 @@ Orden: T-70 `[STOP]` → P0 → P1. P2 solo si se pide. Antes de empezar: el hum
 - [ ] T-75 UI solo lectura (RF-21): etiquetas «GLPI», «Abrir en GLPI», `/ajustes` con estado/probar/sincronizar, lista blanca de PATCH reducida + T-I8; ocultar flujos legados tras `LEGACY_IMPORT_ENABLED`.
 - [ ] T-83 (P1) Rediseño visual al estilo GLPI (specs/11 §12, referencia `docs/referencia-visual/glpi-panel-central.png`): tokens de color muestreados, sidebar teal plegable, barra superior, componente `KpiTile`, donuts/barras en SVG propio y nuevo dashboard. Hacerlo tras T-75 y antes del corte (T-80).
 - [x] T-76 Enlace de vuelta `/equipos/glpi/[id]` y `?name=` + campo motivo con nº de ticket (RF-22) + T-I9; guía del Enlace Externo en `docs/operacion.md`.
-- [ ] T-77 `posiciones.csv` (RF-23) + bandeja «Sin colocar» en el mapa + T-I11.
+- [x] T-77 `posiciones.csv` (RF-23) + bandeja «Sin colocar» en el mapa + T-I11.
 - [ ] T-78 Calidad redefinida (RF-24) con enlaces «Corregir en GLPI».
 - [ ] T-79 (P1, **tras 2 semanas estables**, con confirmación) Retirar sync OCS, mapper, importaciones/asistente legados y columnas `ocs*` (migración destructiva ⇒ backup `pg_dump` primero).
 - [ ] T-80 `[STOP]` Corte (specs/11 §9): modo sombra con GLPI real, validar informe, activar sync, colocar puestos, probar asistencia remota; el agente anota hallazgos en `docs/progress.md`.

@@ -72,7 +72,10 @@ export default async function MapaPage({
     prisma.computer.findMany({
       where: {
         archived: false,
-        OR: [{ floorId: null }, { posX: null }, { posY: null }],
+        OR: [
+          { floorId: null },
+          { floorId: floor.id, OR: [{ posX: null }, { posY: null }] },
+        ],
       },
       orderBy: { hostname: "asc" },
       take: 300,

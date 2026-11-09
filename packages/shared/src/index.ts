@@ -15,3 +15,4 @@ export * from "./import-rules.js";
 export * from "./directory.js";
 export * from "./quality.js";
 export * from "./schemas.js";
+export * from "./glpi-ownership.js";

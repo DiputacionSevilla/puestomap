@@ -1,6 +1,6 @@
 import { getPrisma } from "@puestomap/db";
 import type { Prisma } from "@puestomap/db";
-import { computerPatchSchema } from "@puestomap/shared";
+import { computerPatchSchema, glpiOwnedFieldsInPatch } from "@puestomap/shared";
 import { ApiError, errorResponse, jsonOk, parseBody, requireRole } from "@/lib/api";
 import { audit, clientIp } from "@/lib/audit";
 import { validatePlacement } from "@/lib/placement";
@@ -54,6 +54,11 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
 
     const current = await prisma.computer.findUnique({ where: { id } });
     if (!current) throw new ApiError(404, "NOT_FOUND", "Equipo no encontrado");
+
+    const owned = glpiOwnedFieldsInPatch(input, current);
+    if (owned.length > 0) {
+      throw new ApiError(400, "GLPI_OWNED", `Campos gestionados en GLPI (solo lectura): ${owned.join(", ")}`);
+    }
 
     const floorChanged = input.floorId !== undefined && input.floorId !== current.floorId;
     let posX = input.posX !== undefined ? input.posX : current.posX;

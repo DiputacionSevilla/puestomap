@@ -8,7 +8,7 @@ Las reglas de ejecución SDD (bucle de tareas, `[STOP]`, formato de commits) est
 
 Panel interno del Ayuntamiento de Mairena del Alcor para **inventariar puestos de trabajo**
 (edificios/plantas/despachos/planos/ubicaciones en mapa) y prestar **asistencia remota**
-(visor noVNC en el navegador + lanzador nativo TightVNC), con sincronización opcional con OCS.
+(visor noVNC en el navegador + lanzador nativo TightVNC), con inventario sincronizado desde GLPI (CR-02; OCS en retirada).
 
 - Metodología SDD: `puestomap-sdd/specs/` es la fuente de verdad; `puestomap-sdd/tasks.md` es el
   plan; `docs/` guarda decisiones, progreso, bloqueos y operación.
@@ -42,7 +42,7 @@ Panel interno del Ayuntamiento de Mairena del Alcor para **inventariar puestos d
 ```
 apps/web        Next.js (App Router, TS) — UI + route handlers (/api/*). Puerto dev 3000
 apps/gateway    Node + ws — proxy WebSocket↔TCP (RFB) con JWT un solo uso. Puerto dev 8081
-apps/worker     Node — sync OCS, sondeo de red, cron, health en puerto 8082 (sin publicar en prod)
+apps/worker     Node — sync GLPI (y OCS hasta T-79), sondeo de red, cron, health en puerto 8082 (sin publicar en prod)
 packages/db     Prisma (schema, migraciones, seed, cliente @puestomap/db)
 packages/shared Tipos, zod, lógica pura (crypto, token, cidr, rfb, vnc-status, csv…) — @puestomap/shared
 scripts/        dev.mjs, gen-secrets.mjs, smoke.*, e2e-browser/
@@ -167,7 +167,7 @@ Flujo de una sesión WEB:
 ## 7. Estado de tareas y pendientes
 
 - Completadas: F0–F8 salvo puntos que requieren intervención humana:
-  - `T-20 [STOP]` mapper OCS contra JSON real anonimizado.
+  - `T-20` sustituida por CR-02 (inventario desde GLPI).
   - `T-42/T-49 [STOP]` piloto multipantalla en PC de doble monitor.
   - `T-38 [STOP]` checklist de aceptación con red real.
   - `T-63 [STOP]` carga real (CR-01) con checklist de `specs/10` §13.

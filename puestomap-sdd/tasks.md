@@ -89,7 +89,7 @@ criterios de aceptación cumplidos + `npm run verify` en verde + commit.
 
 ## F9 — CR-02: GLPI como fuente de verdad (specs/11; **prevalece sobre 00–10**)
 Orden: T-70 `[STOP]` → P0 → P1. P2 solo si se pide. Antes de empezar: el humano commitea el árbol actual.
-- [ ] T-69 Reconciliación y ADR-008 (ya redactada): tabla en `docs/progress.md` (tarea previa · estado · delta); actualizar `AGENTS.md` §1/§2/§7 y marcar T-20, T-41 y T-63 como sustituidas.
+- [x] T-69 Reconciliación y ADR-008 (ya redactada): tabla en `docs/progress.md` (tarea previa · estado · delta); actualizar `AGENTS.md` §1/§2/§7 y marcar T-20, T-41 y T-63 como sustituidas.
 - [x] T-70 `[STOP]` Pedir al humano los JSON reales de GLPI (specs/11 §5.7): equipo, search options, lugares. Anonimizar en `apps/worker/test/fixtures/glpi-*.json`. Hasta entonces, `glpi-computer.sample.json` propio.
 - [x] T-71 Modelo (§4): migración aditiva `cr02_glpi` (`glpiId`, `glpiLocationId`, `lastInventoryAt`, enums `GLPI`), `.env.example` (§5.1) y `docker-compose.yml` (variables por servicio + `extra_hosts` a la IP privada de GLPI si procede).
 - [x] T-72 Cliente GLPI del worker (§5.3), reutilizando el diseño de `glpi-incidencias-movil/lib/glpi/client.ts` + T-U22.

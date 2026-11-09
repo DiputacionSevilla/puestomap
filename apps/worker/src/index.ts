@@ -5,11 +5,9 @@ import http from "node:http";
 import { cleanupStaleSessions } from "./cleanup.js";
 import { runProbe } from "./probe.js";
 import { runGlpiSync } from "./sync/glpi.js";
-import { runOcsSync } from "./sync/ocs.js";
 
 export const WORKER_VERSION = "1.0.0";
 
-let ocsRunning = false;
 let glpiRunning = false;
 let probeRunning = false;
 
@@ -22,19 +20,6 @@ function log(event: string, data: Record<string, unknown> = {}) {
     event,
     ...data,
   }));
-}
-
-async function guardedOcsSync() {
-  if (ocsRunning) return false;
-  ocsRunning = true;
-  try {
-    await runOcsSync();
-  } catch (error) {
-    console.error(JSON.stringify({ level: "error", event: "ocs.sync.failed", error: error instanceof Error ? error.message : String(error) }));
-  } finally {
-    ocsRunning = false;
-  }
-  return true;
 }
 
 async function guardedGlpiSync() {
@@ -66,7 +51,6 @@ export function startWorker() {
   const prisma = getPrisma();
   const interval = Math.max(1, Math.min(59, Number(process.env.PROBE_INTERVAL_MIN ?? 5) || 5));
   cron.schedule(`*/${interval} * * * *`, () => void guardedProbe());
-  cron.schedule(process.env.OCS_SYNC_CRON ?? "0 */2 * * *", () => void guardedOcsSync());
   if (process.env.GLPI_URL && process.env.GLPI_TOKEN) {
     cron.schedule(process.env.GLPI_SYNC_CRON ?? "*/30 * * * *", () => void guardedGlpiSync());
     cron.schedule("*/30 * * * * *", () => void (async () => {
@@ -86,20 +70,6 @@ export function startWorker() {
   cron.schedule("* * * * *", () => void cleanupStaleSessions().catch((error) => {
     console.error(JSON.stringify({ level: "error", event: "sessions.cleanup.failed", error: String(error) }));
   }));
-  cron.schedule("*/30 * * * * *", () => void (async () => {
-    const [requested, handled] = await Promise.all([
-      prisma.setting.findUnique({ where: { key: "ocs.requestedAt" } }),
-      prisma.setting.findUnique({ where: { key: "ocs.handledRequestAt" } }),
-    ]);
-    if (typeof requested?.value !== "string" || requested.value === handled?.value) return;
-    const executed = await guardedOcsSync();
-    if (!executed) return;
-    await prisma.setting.upsert({
-      where: { key: "ocs.handledRequestAt" },
-      update: { value: requested.value },
-      create: { key: "ocs.handledRequestAt", value: requested.value },
-    });
-  })().catch((error) => console.error(JSON.stringify({ level: "error", event: "ocs.request.failed", error: String(error) }))));
   cron.schedule("0 */6 * * *", () => {
     void discoverScreenCandidates(prisma)
       .then((count) => log("screens.probed", { count }))

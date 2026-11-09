@@ -4,7 +4,7 @@ import { CheckCircle2, Download, History, MapPinOff, Monitor, Monitor as Monitor
 import Link from "next/link";
 import { getPrisma } from "@puestomap/db";
 import {
-  STALE_OCS_DAYS,
+  STALE_INVENTORY_DAYS,
   deriveMultiStateFrom,
   stateWhere,
 } from "@/lib/computers";
@@ -17,10 +17,10 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const prisma = getPrisma();
-  const staleCutoff = new Date(Date.now() - STALE_OCS_DAYS * 24 * 60 * 60 * 1000);
+  const staleCutoff = new Date(Date.now() - STALE_INVENTORY_DAYS * 24 * 60 * 60 * 1000);
   const base = { archived: false };
 
-  const [total, ready, notListening, notInstalled, offlineOrUnknown, unplaced, staleOcs, rows] =
+  const [total, ready, notListening, notInstalled, offlineOrUnknown, unplaced, staleInventory, rows] =
     await Promise.all([
       prisma.computer.count({ where: base }),
       prisma.computer.count({ where: { ...base, ...stateWhere("READY") } }),
@@ -34,7 +34,7 @@ export default async function HomePage() {
       }),
       prisma.computer.count({ where: {
           ...base,
-          OR: [{ lastInventoryAt: { lt: staleCutoff } }, { lastInventoryAt: null, ocsLastInventory: { lt: staleCutoff } }],
+          lastInventoryAt: { lt: staleCutoff },
         } }),
       prisma.computer.findMany({
         where: base,
@@ -96,7 +96,7 @@ export default async function HomePage() {
     { label: "Sin instalar", value: notInstalled, href: "/equipos?state=NOT_INSTALLED", icon: Download, tone: "red" },
     { label: "Apagados / sin datos", value: offlineOrUnknown, href: "/equipos?state=OFFLINE,UNKNOWN", icon: PowerOff, tone: "slate" },
     { label: "Sin colocar", value: unplaced, href: "/equipos?unplaced=true", icon: MapPinOff, tone: "blue" },
-    { label: "Sin inventario > 30 d", value: staleOcs, href: "/equipos?staleOcs=true", icon: History, tone: "red" },
+    { label: "Sin inventario > 30 d", value: staleInventory, href: "/equipos?staleInventory=true", icon: History, tone: "red" },
     { label: "Multipantalla pendiente", value: multiPending, href: "/equipos?multiPending=true", icon: Monitors, tone: "teal" },
   ];
 

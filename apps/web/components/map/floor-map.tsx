@@ -515,7 +515,7 @@ export function FloorMap({
                 : "sin usuario de dominio"}
               {selected.userMatch === "MISMATCH" ? (
                 <Badge variant="destructive" className="ml-1 text-[10px]">
-                  discrepancia con OCS
+                  discrepancia con el último usuario inventariado
                 </Badge>
               ) : null}
             </p>

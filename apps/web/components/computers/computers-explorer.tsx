@@ -49,7 +49,7 @@ type ListItem = {
   adUsername: string | null;
   lastUserNorm: string | null;
   directoryName: string | null;
-  userMatch: "UNASSIGNED" | "MATCH" | "MISMATCH" | "NO_OCS_USER";
+  userMatch: "UNASSIGNED" | "MATCH" | "MISMATCH" | "NO_INVENTORY_USER";
 };
 
 const STATE_OPTIONS: { value: VncUiState; label: string }[] = [
@@ -312,10 +312,10 @@ export function ComputersExplorer({
               </label>
               <label className="flex items-center gap-2">
                 <Checkbox
-                  checked={params.staleOcs === "true"}
-                  onChange={(e) => setParams({ staleOcs: e.target.checked ? "true" : null })}
+                  checked={params.staleInventory === "true"}
+                  onChange={(e) => setParams({ staleInventory: e.target.checked ? "true" : null })}
                 />
-                No visto en OCS &gt; 30 días
+                Sin inventario &gt; 30 días
               </label>
               <label className="flex items-center gap-2">
                 <Checkbox

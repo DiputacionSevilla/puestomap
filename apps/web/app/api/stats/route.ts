@@ -2,7 +2,7 @@ import { getPrisma } from "@puestomap/db";
 import type { Prisma } from "@puestomap/db";
 import { errorResponse, jsonOk, requireRole } from "@/lib/api";
 import {
-  STALE_OCS_DAYS,
+  STALE_INVENTORY_DAYS,
   deriveMultiStateFrom,
   stateWhere,
 } from "@/lib/computers";
@@ -14,7 +14,7 @@ export async function GET() {
     await requireRole();
     const prisma = getPrisma();
 
-    const staleCutoff = new Date(Date.now() - STALE_OCS_DAYS * 24 * 60 * 60 * 1000);
+    const staleCutoff = new Date(Date.now() - STALE_INVENTORY_DAYS * 24 * 60 * 60 * 1000);
     const base: Prisma.ComputerWhereInput = { archived: false };
 
     const [
@@ -24,7 +24,7 @@ export async function GET() {
       notInstalled,
       offlineOrUnknown,
       unplaced,
-      staleOcs,
+      staleInventory,
     ] = await Promise.all([
       prisma.computer.count({ where: base }),
       prisma.computer.count({ where: { ...base, ...stateWhere("READY") } }),
@@ -42,7 +42,7 @@ export async function GET() {
       prisma.computer.count({
         where: {
           ...base,
-          OR: [{ lastInventoryAt: { lt: staleCutoff } }, { lastInventoryAt: null, ocsLastInventory: { lt: staleCutoff } }],
+          lastInventoryAt: { lt: staleCutoff },
         },
       }),
     ]);
@@ -102,7 +102,7 @@ export async function GET() {
       byBuilding.set(key, entry);
     }
 
-    const [lastSessions, lastOcsRun, lastSync, lastProbe] = await Promise.all([
+    const [lastSessions, lastGlpiRun, lastSync, lastProbe] = await Promise.all([
       prisma.remoteSession.findMany({
         orderBy: { createdAt: "desc" },
         take: 10,
@@ -112,7 +112,7 @@ export async function GET() {
         },
       }),
       prisma.syncRun.findFirst({
-        where: { type: "OCS", status: { not: "RUNNING" } },
+        where: { type: "GLPI", status: { not: "RUNNING" } },
         orderBy: { finishedAt: "desc" },
       }),
       prisma.syncRun.findFirst({ orderBy: { startedAt: "desc" } }),
@@ -127,12 +127,12 @@ export async function GET() {
         notInstalled,
         offlineOrUnknown,
         unplaced,
-        staleOcs,
+        staleInventory,
         multiPending,
       },
       byBuilding: Array.from(byBuilding.values()),
       lastSessions,
-      lastOcsRun,
+      lastGlpiRun,
       lastSync,
       lastProbeAt: lastProbe._max.lastProbeAt,
     });

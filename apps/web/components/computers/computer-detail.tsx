@@ -23,7 +23,6 @@ import { formatBytes, formatDateTime, formatDuration } from "@/lib/format";
 type ComputerData = {
   id: string;
   hostname: string;
-  ocsId: number | null;
   glpiId?: number | null;
   externalRef: string | null;
   assetTag: string | null;
@@ -45,7 +44,6 @@ type ComputerData = {
   adUsername: string | null;
   directoryUser: { displayName: string; department: string | null; phone: string | null } | null;
   lastUserDirectoryName: string | null;
-  ocsLastInventory: string | null;
   lastInventoryAt?: string | null;
   assignedTo: string | null;
   phoneExt: string | null;
@@ -137,7 +135,7 @@ export function ComputerDetail({
   const router = useRouter();
   const [computer, setComputer] = useState(initial);
   const fromGlpi = computer.glpiId != null;
-  const inventoryOrigin = fromGlpi ? "GLPI" : "OCS";
+  const inventoryOrigin = "GLPI";
   const glpiLink = fromGlpi && glpiPublicUrl
     ? `${glpiPublicUrl.replace(/\/+$/, "")}/front/computer.form.php?id=${computer.glpiId}`
     : null;
@@ -349,9 +347,7 @@ export function ComputerDetail({
               </CardHeader>
               <CardContent>
                 <Field label="Hostname" value={computer.hostname} origin={inventoryOrigin} />
-                {fromGlpi
-                  ? <Field label="ID GLPI" value={computer.glpiId} origin="GLPI" />
-                  : <Field label="ID OCS" value={computer.ocsId} origin="OCS" />}
+                <Field label="ID GLPI" value={computer.glpiId} origin="GLPI" />
                 <Field label="Nº de serie" value={computer.serial} origin={inventoryOrigin} />
                 <Field label="Etiqueta de inventario" value={computer.assetTag} origin={fromGlpi ? "GLPI" : "Manual"} />
                 <Field label="Fuente" value={computer.source} />
@@ -368,7 +364,7 @@ export function ComputerDetail({
                 <Field label="Dominio" value={computer.domain} origin={inventoryOrigin} />
                 <Field label="Último usuario" value={computer.lastUser} origin={inventoryOrigin} />
                 <Field label="Nombre en directorio" value={computer.lastUserDirectoryName} origin="Directorio" />
-                <Field label="Último inventario" value={formatDateTime(computer.lastInventoryAt ?? computer.ocsLastInventory)} origin={inventoryOrigin} />
+                <Field label="Último inventario" value={formatDateTime(computer.lastInventoryAt)} origin={inventoryOrigin} />
               </CardContent>
             </Card>
             <Card>
@@ -445,7 +441,7 @@ export function ComputerDetail({
               <CardContent>
                 <Field label="Creado" value={formatDateTime(computer.createdAt)} />
                 <Field label="Actualizado" value={formatDateTime(computer.updatedAt)} />
-                <Field label="Pantallas (OCS)" value={computer.monitorCount} origin={inventoryOrigin} />
+                <Field label="Pantallas" value={computer.monitorCount} origin={inventoryOrigin} />
               </CardContent>
             </Card>
           </div>

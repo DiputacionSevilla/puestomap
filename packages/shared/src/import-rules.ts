@@ -291,7 +291,7 @@ export type ExistingComputer = {
   id: string;
   hostname: string;
   ip: string | null;
-  ocsId: number | null;
+  glpiId: number | null;
   assignedTo: string | null;
   adUsername: string | null;
   floorId: string | null;
@@ -362,8 +362,8 @@ export function validateComputerImport(
     if (ip) {
       if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) {
         errors.push({ code: "IP_INVALIDA", detail: `IP no válida: ${ip}` });
-      } else if (existing && existing.ocsId !== null && existing.ip !== null) {
-        warnings.push({ code: "IP_GESTIONADA_POR_OCS", detail: "la IP se omite porque la gestiona OCS" });
+      } else if (existing && existing.glpiId !== null && existing.ip !== null) {
+        warnings.push({ code: "IP_GESTIONADA_POR_GLPI", detail: "la IP se omite porque la gestiona GLPI" });
       } else {
         values.ip = ip;
         if (existing && existing.ip !== ip) dirty = true;

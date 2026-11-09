@@ -68,7 +68,7 @@ describe("T-I5 carga Ayuntamiento", () => {
     expect(first).toHaveLength(36);
     expect(first.every((row) => row.action === "crear" && row.errors.length === 0 && row.values.floorId && row.values.posX !== undefined)).toBe(true);
     const existing = first.map((row, index) => ({
-      id: `computer-${index}`, hostname: row.values.hostname, ip: row.values.ip ?? null, ocsId: null,
+      id: `computer-${index}`, hostname: row.values.hostname, ip: row.values.ip ?? null, glpiId: null,
       assignedTo: row.values.assignedTo ?? null, adUsername: row.values.adUsername ?? null,
       floorId: row.values.floorId ?? null, officeId: row.values.officeId ?? null,
       departmentId: row.values.departmentId ?? null, posX: row.values.posX ?? null, posY: row.values.posY ?? null,

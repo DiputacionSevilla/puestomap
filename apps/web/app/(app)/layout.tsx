@@ -13,9 +13,9 @@ export default async function AppLayout({
   if (!session?.user) redirect("/login");
 
   const prisma = getPrisma();
-  const [lastOcsRun, lastProbe] = await Promise.all([
+  const [lastGlpiRun, lastProbe] = await Promise.all([
     prisma.syncRun.findFirst({
-      where: { type: { in: ["GLPI", "OCS"] }, status: { not: "RUNNING" } },
+      where: { type: "GLPI", status: { not: "RUNNING" } },
       orderBy: { finishedAt: "desc" },
       select: { finishedAt: true },
     }),
@@ -30,7 +30,7 @@ export default async function AppLayout({
       <div className="flex min-w-0 flex-1 flex-col">
         <Header
           user={{ name: session.user.name ?? session.user.username ?? "", role: session.user.role }}
-          lastOcsSync={lastOcsRun?.finishedAt ?? null}
+          lastSync={lastGlpiRun?.finishedAt ?? null}
           lastProbe={lastProbe._max.lastProbeAt}
         />
         <main className="flex-1 p-4">{children}</main>

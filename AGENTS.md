@@ -8,7 +8,7 @@ Las reglas de ejecución SDD (bucle de tareas, `[STOP]`, formato de commits) est
 
 Panel interno del Ayuntamiento de Mairena del Alcor para **inventariar puestos de trabajo**
 (edificios/plantas/despachos/planos/ubicaciones en mapa) y prestar **asistencia remota**
-(visor noVNC en el navegador + lanzador nativo TightVNC), con inventario sincronizado desde GLPI (CR-02; OCS en retirada).
+(visor noVNC en el navegador + lanzador nativo TightVNC), con inventario sincronizado desde GLPI (CR-02; OCS retirado en T-79).
 
 - Metodología SDD: `puestomap-sdd/specs/` es la fuente de verdad; `puestomap-sdd/tasks.md` es el
   plan; `docs/` guarda decisiones, progreso, bloqueos y operación.
@@ -42,7 +42,7 @@ Panel interno del Ayuntamiento de Mairena del Alcor para **inventariar puestos d
 ```
 apps/web        Next.js (App Router, TS) — UI + route handlers (/api/*). Puerto dev 3000
 apps/gateway    Node + ws — proxy WebSocket↔TCP (RFB) con JWT un solo uso. Puerto dev 8081
-apps/worker     Node — sync GLPI (y OCS hasta T-79), sondeo de red, cron, health en puerto 8082 (sin publicar en prod)
+apps/worker     Node — sync GLPI, sondeo de red, cron, health en puerto 8082 (sin publicar en prod)
 packages/db     Prisma (schema, migraciones, seed, cliente @puestomap/db)
 packages/shared Tipos, zod, lógica pura (crypto, token, cidr, rfb, vnc-status, csv…) — @puestomap/shared
 scripts/        dev.mjs, gen-secrets.mjs, smoke.*, e2e-browser/

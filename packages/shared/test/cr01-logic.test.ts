@@ -77,7 +77,7 @@ describe("normalizeAdUser / deriveUserMatch (T-U13)", () => {
 
   it("los 4 estados de deriveUserMatch", () => {
     expect(deriveUserMatch({ adUsername: null, lastUserNorm: "jmlopez" })).toBe("UNASSIGNED");
-    expect(deriveUserMatch({ adUsername: "jmlopez", lastUserNorm: null })).toBe("NO_OCS_USER");
+    expect(deriveUserMatch({ adUsername: "jmlopez", lastUserNorm: null })).toBe("NO_INVENTORY_USER");
     expect(deriveUserMatch({ adUsername: "jmlopez", lastUserNorm: "jmlopez" })).toBe("MATCH");
     expect(deriveUserMatch({ adUsername: "jmlopez", lastUserNorm: "pgarcia" })).toBe("MISMATCH");
   });

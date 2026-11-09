@@ -38,7 +38,7 @@ const computerCtx: ComputerImportCtx = {
       id: "pc1",
       hostname: "PC-INT-01",
       ip: "10.1.2.34",
-      ocsId: 123,
+      glpiId: 123,
       assignedTo: "María López",
       adUsername: "mlopez",
       floorId: "f1",
@@ -124,7 +124,7 @@ describe("importación CR-01 (T-U10+)", () => {
       { crearEquipos: true },
     );
     expect(results[0].values.ip).toBeUndefined();
-    expect(results[0].warnings.some((w) => w.code === "IP_GESTIONADA_POR_OCS")).toBe(true);
+    expect(results[0].warnings.some((w) => w.code === "IP_GESTIONADA_POR_GLPI")).toBe(true);
   });
 
   it("equipos: despacho de otra planta → error", () => {

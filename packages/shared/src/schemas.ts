@@ -225,7 +225,7 @@ export const computersListQuerySchema = z.object({
   officeId: z.string().cuid().optional(),
   state: z.string().optional(),
   unplaced: booleanish.optional(),
-  staleOcs: booleanish.optional(),
+  staleInventory: booleanish.optional(),
   multiPending: booleanish.optional(),
   check: qualityCheckSchema.optional(),
   os: z.string().trim().max(120).optional(),

@@ -58,7 +58,7 @@ export async function loadComputerImportCtx(): Promise<{
         id: true,
         hostname: true,
         ip: true,
-        ocsId: true,
+        glpiId: true,
         assignedTo: true,
         adUsername: true,
         floorId: true,

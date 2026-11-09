@@ -12,14 +12,6 @@ export function defaultScreenPort(index: number): number {
   return DESKTOP_PORT_DEFAULT + index;
 }
 
-export function monitorCountFromOcs(value: unknown): number | null {
-  if (!value || typeof value !== "object") return null;
-  const monitors = (value as { monitors?: unknown }).monitors;
-  if (Array.isArray(monitors)) return monitors.length;
-  if (monitors && typeof monitors === "object") return Object.keys(monitors).length;
-  return null;
-}
-
 export function deriveMultiState(input: {
   monitorCount: number | null;
   screens: ScreenLike[];

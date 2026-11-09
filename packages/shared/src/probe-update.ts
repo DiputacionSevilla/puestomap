@@ -2,13 +2,11 @@ import { computeVncInstalled } from "./vnc-status.js";
 import type { ProbeResult } from "./probe.js";
 import type { TriStateValue } from "./types.js";
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type ProbeableComputer = {
   vncInstalled: TriStateValue;
   vncInstalledSrc: string | null;
   vncVersion: string | null;
-  ocsLastInventory: Date | null;
   lastVncOkAt: Date | null;
   lastSeenAt: Date | null;
 };
@@ -32,9 +30,8 @@ export function applyProbeResult(
   const lastVncOkAt =
     result.vncReachable === true ? now : computer.lastVncOkAt;
 
-  const ocsInventoryRecent =
-    computer.ocsLastInventory !== null &&
-    now.getTime() - computer.ocsLastInventory.getTime() <= 30 * DAY_MS;
+  // GLPI no inventaría el software: el inventario ya no prueba la ausencia de TightVNC.
+  const ocsInventoryRecent = false;
 
   const ocsHasTightVnc: boolean | null = computer.vncVersion
     ? true

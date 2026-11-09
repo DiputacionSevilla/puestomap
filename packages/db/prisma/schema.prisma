@@ -130,7 +130,6 @@ model VncCredential {
 model Computer {
   id               String         @id @default(cuid())
   hostname         String         @unique
-  ocsId            Int?           @unique
   externalRef      String?
   assetTag         String?
   serial           String?
@@ -147,7 +146,6 @@ model Computer {
   ramMb            Int?
   diskGb           Int?
   lastUser         String?
-  ocsLastInventory DateTime?
   glpiId           Int?      @unique
   glpiSyncedAt     DateTime?
   glpiState        String?

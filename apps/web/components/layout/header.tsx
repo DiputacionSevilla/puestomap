@@ -7,19 +7,19 @@ import { Button } from "@/components/ui/button";
 
 export function Header({
   user,
-  lastOcsSync,
+  lastSync,
   lastProbe,
 }: {
   user: { name: string; role: AppRole };
-  lastOcsSync: Date | null;
+  lastSync: Date | null;
   lastProbe: Date | null;
 }) {
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-background px-4">
       <GlobalSearch />
       <div className="ml-auto hidden items-center gap-3 text-xs text-muted-foreground lg:flex">
-        <span title="Última sincronización con OCS">
-          GLPI: {formatRelative(lastOcsSync)}
+        <span title="Última sincronización con GLPI">
+          GLPI: {formatRelative(lastSync)}
         </span>
         <span title="Último sondeo de red">Sondeo: {formatRelative(lastProbe)}</span>
       </div>

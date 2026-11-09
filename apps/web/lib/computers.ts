@@ -2,7 +2,7 @@ import type { Prisma } from "@puestomap/db";
 import type { ComputersListQuery, VncUiState } from "@puestomap/shared";
 import { deriveUserMatch, deriveVncState, type MultiState, type ScreenLike } from "@puestomap/shared";
 
-export const STALE_OCS_DAYS = 30;
+export const STALE_INVENTORY_DAYS = 30;
 
 const SORTABLE: Record<string, string> = {
   hostname: "hostname",
@@ -107,11 +107,9 @@ export function buildComputersWhere(query: ComputersListQuery, directoryMatches:
       OR: [{ floorId: null }, { posX: null }, { posY: null }],
     });
   }
-  if (query.staleOcs === true) {
-    const cutoff = new Date(Date.now() - STALE_OCS_DAYS * 24 * 60 * 60 * 1000);
-    and.push({
-      OR: [{ lastInventoryAt: { lt: cutoff } }, { lastInventoryAt: null, ocsLastInventory: { lt: cutoff } }],
-    });
+  if (query.staleInventory === true) {
+    const cutoff = new Date(Date.now() - STALE_INVENTORY_DAYS * 24 * 60 * 60 * 1000);
+    and.push({ lastInventoryAt: { lt: cutoff } });
   }
   if (query.state) {
     const states = query.state

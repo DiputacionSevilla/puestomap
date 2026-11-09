@@ -7,7 +7,7 @@ export async function GET() {
   try {
     await requireRole("TECH", "ADMIN");
     const items = await getPrisma().syncRun.findMany({
-      where: { type: "OCS" },
+      where: { type: "GLPI" },
       orderBy: { startedAt: "desc" },
       take: 10,
     });

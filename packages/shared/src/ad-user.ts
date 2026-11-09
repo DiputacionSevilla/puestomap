@@ -18,13 +18,13 @@ export function normalizeAdUser(
   return value;
 }
 
-export type UserMatch = "UNASSIGNED" | "MATCH" | "MISMATCH" | "NO_OCS_USER";
+export type UserMatch = "UNASSIGNED" | "MATCH" | "MISMATCH" | "NO_INVENTORY_USER";
 
 export function deriveUserMatch(input: {
   adUsername?: string | null;
   lastUserNorm?: string | null;
 }): UserMatch {
   if (!input.adUsername) return "UNASSIGNED";
-  if (!input.lastUserNorm) return "NO_OCS_USER";
+  if (!input.lastUserNorm) return "NO_INVENTORY_USER";
   return input.adUsername === input.lastUserNorm ? "MATCH" : "MISMATCH";
 }

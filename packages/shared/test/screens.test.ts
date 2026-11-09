@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import net from "node:net";
-import { deriveMultiState, discoverScreens, monitorCountFromOcs, validateScreenList } from "@puestomap/shared";
+import { deriveMultiState, discoverScreens, validateScreenList } from "@puestomap/shared";
 import { probeTcpPort } from "@puestomap/shared/probe";
 
 const screen = (index: number, port: number, enabled = true) => ({
@@ -12,10 +12,6 @@ const screen = (index: number, port: number, enabled = true) => ({
 });
 
 describe("screens (T-U11)", () => {
-  it("cuenta la sección monitors del inventario OCS", () => {
-    expect(monitorCountFromOcs({ monitors: [{ name: "A" }, { name: "B" }] })).toBe(2);
-    expect(monitorCountFromOcs({ hardware: {} })).toBeNull();
-  });
   describe("deriveMultiState", () => {
     it("SINGLE sin pantallas ni indicios", () => {
       expect(deriveMultiState({ monitorCount: null, screens: [] })).toBe("SINGLE");

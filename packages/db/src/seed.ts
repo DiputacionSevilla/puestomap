@@ -188,7 +188,7 @@ type ComputerSpec = {
   departmentId?: string;
   posX?: number;
   posY?: number;
-  staleOcs?: boolean;
+  staleInventory?: boolean;
   monitorCount?: number;
   screens?: number;
 };
@@ -229,7 +229,7 @@ function buildComputers(): ComputerSpec[] {
       hostname: `PC-${String(n).padStart(2, "0")}-SEED`,
       state,
       ...placement,
-      staleOcs: i % 7 === 3,
+      staleInventory: i % 7 === 3,
     });
   }
   // 4 equipos con 2 pantallas y 1 con 3 (DM-8 / T-43)
@@ -281,9 +281,9 @@ async function seedComputers(credentialId: string) {
             : spec.n % 7 === 2
               ? "usuario.distinto"
               : normalizeAdUser(people[spec.n % people.length].login),
-      ocsLastInventory: spec.staleOcs ? new Date(now - 45 * day) : new Date(now - 2 * day),
-      source: "OCS" as const,
-      ocsId: 9000 + spec.n,
+      lastInventoryAt: spec.staleInventory ? new Date(now - 45 * day) : new Date(now - 2 * day),
+      source: "GLPI" as const,
+      glpiId: 9000 + spec.n,
     };
 
     let live: {
@@ -326,7 +326,7 @@ async function seedComputers(credentialId: string) {
           online: true,
           vncReachable: false,
           vncInstalled: "NO",
-          vncInstalledSrc: "OCS",
+          vncInstalledSrc: "PROBE",
           lastProbeAt: new Date(now - 10 * 60 * 1000),
           lastSeenAt: new Date(now - 10 * 60 * 1000),
           lastVncOkAt: null,
@@ -338,7 +338,7 @@ async function seedComputers(credentialId: string) {
           online: false,
           vncReachable: false,
           vncInstalled: "YES",
-          vncInstalledSrc: "OCS",
+          vncInstalledSrc: "PROBE",
           lastProbeAt: new Date(now - 12 * 60 * 1000),
           lastSeenAt: new Date(now - 2 * day),
           lastVncOkAt: new Date(now - 2 * day),
@@ -367,7 +367,7 @@ async function seedComputers(credentialId: string) {
         ...base,
         assignedTo: people[spec.n % people.length].name,
         phoneExt: String(2100 + spec.n),
-        notes: spec.staleOcs ? "Equipo no visto en OCS en más de 30 días" : null,
+        notes: spec.staleInventory ? "Equipo sin inventario en GLPI en más de 30 días" : null,
         assetTag: `INV-${String(spec.n).padStart(5, "0")}`,
         floorId: spec.floorId ?? null,
         officeId: spec.officeId ?? null,

@@ -16,3 +16,4 @@ packages/db/prisma/migrations/**/migration_lock.toml.bak
 extras/glpi-agent/*.csv
 deploy-results-*.csv
 escaneo*.csv
+docs/equipos*.csv

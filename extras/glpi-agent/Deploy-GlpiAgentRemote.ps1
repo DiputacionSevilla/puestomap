@@ -33,6 +33,7 @@ param(
     [int]      $Limit = 0,
     [int]      $Throttle = 8,
     [int]      $TimeoutMinutes = 10,
+    [string]   $ExcludeVendor = 'RICOH|Synology|Sonic\s?wall|CARRIER ACCESS|Brother|Kyocera|Lexmark|Xerox|Canon|EPSON|\bOKI\b|Ubiquiti|MikroTik|Zyxel|Fortinet|Cisco|Hikvision|Dahua|APC|QNAP',
     [switch]   $SkipRemoveOld,
     [switch]   $Execute,
     [switch]   $Force,
@@ -50,28 +51,35 @@ if (-not $ResultsPath) { $ResultsPath = Join-Path (Get-Location) ('deploy-result
 # ------------------------------ Lectura del CSV de escaneo ------------------------------
 function Read-ScanCsv([string]$Path) {
     $first = (Get-Content -LiteralPath $Path -TotalCount 1)
-    $delimiter = if (($first.ToCharArray() | Where-Object { $_ -eq ';' }).Count -ge ($first.ToCharArray() | Where-Object { $_ -eq ',' }).Count) { ';' } else { ',' }
+    $counts = @{ "`t" = 0; ';' = 0; ',' = 0 }
+    foreach ($ch in $first.ToCharArray()) { if ($counts.ContainsKey([string]$ch)) { $counts[[string]$ch]++ } }
+    $delimiter = ($counts.GetEnumerator() | Sort-Object Value -Descending | Select-Object -First 1).Key
     $rows = Import-Csv -LiteralPath $Path -Delimiter $delimiter
     if (-not $rows) { return @() }
     $props = $rows[0].PSObject.Properties.Name
     function Pick([string[]]$names) {
         foreach ($n in $names) { $m = $props | Where-Object { $_ -ieq $n } | Select-Object -First 1; if ($m) { return $m } }
-        foreach ($n in $names) { $m = $props | Where-Object { $_ -match [regex]::Escape($n) } | Select-Object -First 1; if ($m) { return $m } }
+        foreach ($n in $names) { $m = $props | Where-Object { $_ -match ('^' + [regex]::Escape($n) + '\b') } | Select-Object -First 1; if ($m) { return $m } }
         return $null
     }
     $ipCol   = Pick @('ip', 'ipaddress', 'direccion', 'address', 'host')
     $nameCol = Pick @('hostname', 'nombre', 'name', 'equipo', 'computer')
     $osCol   = Pick @('os', 'sistema', 'operatingsystem')
+    $vendorCol = Pick @('fabricante', 'vendor', 'manufacturer')
+    $stateCol  = Pick @('estado', 'status', 'state')
     if (-not $ipCol -and -not $nameCol) { throw "El CSV debe tener una columna de IP o de nombre. Columnas: $($props -join ', ')" }
     $seen = @{}
     foreach ($r in $rows) {
         $ip   = if ($ipCol)   { ([string]$r.$ipCol).Trim() } else { '' }
         $name = if ($nameCol) { ([string]$r.$nameCol).Trim() } else { '' }
         $os   = if ($osCol)   { ([string]$r.$osCol).Trim() } else { '' }
+        $vendor = if ($vendorCol) { ([string]$r.$vendorCol).Trim() } else { '' }
+        $state  = if ($stateCol)  { ([string]$r.$stateCol).Trim() } else { '' }
+        if ($name -eq $ip) { $name = '' }   # los escáneres rellenan el nombre con la IP cuando no lo resuelven
         $target = if ($ip) { $ip } else { $name }
         if (-not $target -or $seen.ContainsKey($target)) { continue }
         $seen[$target] = $true
-        [pscustomobject]@{ Target = $target; Ip = $ip; Hostname = $name; Os = $os }
+        [pscustomobject]@{ Target = $target; Ip = $ip; Hostname = $name; Os = $os; Vendor = $vendor; State = $state }
     }
 }
 
@@ -100,7 +108,7 @@ if ($Execute -and -not $Force) {
 
 # ------------------------------ Trabajo por equipo (se ejecuta en un job) ------------------------------
 $worker = {
-    param($Item, $MsiPath, $MsiVersion, $Server, $Tag, $Credential, $Execute, $SkipRemoveOld, $TimeoutMinutes)
+    param($Item, $MsiPath, $MsiVersion, $Server, $Tag, $Credential, $Execute, $SkipRemoveOld, $TimeoutMinutes, $ExcludeVendor)
     $ErrorActionPreference = 'Stop'
     if ($Execute -isnot [bool] -or $SkipRemoveOld -isnot [bool]) { throw 'Parámetros de modo inválidos; se aborta por seguridad.' }
     $result = [ordered]@{ Target = $Item.Target; Hostname = $Item.Hostname; RemoteName = ''; Status = ''; Detail = ''; Time = (Get-Date -Format 's') }
@@ -151,6 +159,8 @@ $worker = {
 
     try {
         $addr = $Item.Target
+        if ($Item.Vendor -and $ExcludeVendor -and $Item.Vendor -match $ExcludeVendor) { $result.Status = 'OMITIDO'; $result.Detail = "Dispositivo no PC (fabricante: $($Item.Vendor))"; return [pscustomobject]$result }
+        if ($Item.State -and $Item.State -notmatch 'activ|active|up|online') { $result.Status = 'OMITIDO'; $result.Detail = "Estado en el escaneo: $($Item.State)"; return [pscustomobject]$result }
         if ($Item.Os -and $Item.Os -notmatch 'windows|win\d|microsoft') { $result.Status = 'OMITIDO'; $result.Detail = "Sistema no Windows ($($Item.Os))"; return [pscustomobject]$result }
         if (-not (Test-Port $addr 445) -or -not (Test-Port $addr 135)) { $result.Status = 'NO_ALCANZABLE'; $result.Detail = 'Puertos 135/445 cerrados o sin respuesta'; return [pscustomobject]$result }
 
@@ -269,7 +279,7 @@ function Receive-Finished {
 while ($queue.Count -gt 0 -or $running.Count -gt 0) {
     while ($queue.Count -gt 0 -and $running.Count -lt $Throttle) {
         $item = $queue.Dequeue()
-        $job = Start-Job -ScriptBlock $worker -ArgumentList @($item, $MsiPath, $msiVersion, $Server, $Tag, $Credential, $executeFlag, $skipRemoveFlag, $TimeoutMinutes)
+        $job = Start-Job -ScriptBlock $worker -ArgumentList @($item, $MsiPath, $msiVersion, $Server, $Tag, $Credential, $executeFlag, $skipRemoveFlag, $TimeoutMinutes, $ExcludeVendor)
         $running[$job] = $item
     }
     Start-Sleep -Milliseconds 500

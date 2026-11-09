@@ -51,9 +51,9 @@ el agente en el futuro basta con sustituir el MSI en el recurso compartido.
 Alternativa a la GPO para llegar rápido a la mayoría de equipos: se parte de un CSV con lo que ha
 encontrado el escáner de IPs y se instala el agente en remoto.
 
-**CSV de entrada** (separador `;` o `,`, se detecta solo). Basta una columna de IP o de nombre; se
+**CSV de entrada** (separador tabulador, `;` o `,`, y UTF-16/UTF-8; se detecta solo; sirve la exportación de Advanced IP Scanner). Basta una columna de IP o de nombre; se
 reconocen `ip/ipaddress/direccion/address`, `hostname/nombre/name/equipo` y, opcionalmente,
-`os/sistema` (las filas que no sean Windows se omiten). Las IPs repetidas se ignoran.
+`os/sistema` (las filas que no sean Windows se omiten), `fabricante` (se omiten impresoras, NAS, routers y firewalls; ver `-ExcludeVendor`) y `estado` (se omiten los no activos). Un nombre igual a la IP se trata como «sin nombre». Las IPs repetidas se ignoran.
 
 **Qué hace por equipo:** comprueba puertos 135/445 → se conecta por CIM/DCOM (sin WinRM) → verifica
 que es un puesto Windows y que el nombre coincide con el CSV (si el DHCP ha cambiado de equipo, no

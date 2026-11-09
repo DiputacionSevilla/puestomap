@@ -21,7 +21,7 @@ export async function loadStructureCtx(): Promise<StructureCtx> {
         },
       },
     }),
-    prisma.department.findMany({ select: { id: true, code: true } }),
+    prisma.department.findMany({ select: { id: true, code: true, name: true } }),
   ]);
   return {
     buildings: buildings.map((b) => ({

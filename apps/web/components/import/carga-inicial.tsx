@@ -50,7 +50,11 @@ export function CargaInicialWizard({ structure }: { structure: WizardStructure }
     return structure.counts.computers > 0 ? "hecho" : "pendiente";
   }
 
-  function addFiles(files: FileList) {
+  async function addFiles(files: FileList) {
+    const form = new FormData();
+    Array.from(files).forEach((file) => form.append("files", file));
+    const previewResponse = await fetch("/api/import/plans/preview", { method: "POST", body: form });
+    const previews: { fileName: string; matchedFloorId?: string; width?: number; height?: number; errors: string[]; warnings: string[] }[] = previewResponse.ok ? await previewResponse.json() : [];
     const next: PlanAssignment[] = [];
     for (const file of Array.from(files)) {
       const base = file.name.replace(/\.[^.]+$/, "");
@@ -65,7 +69,14 @@ export function CargaInicialWizard({ structure }: { structure: WizardStructure }
           matched = true;
         }
       }
-      next.push({ file, floorId, matched, status: matched ? "asignado automáticamente" : "pendiente de asignar" });
+      const preview = previews.find((entry) => entry.fileName === file.name);
+      if (preview?.matchedFloorId) {
+        floorId = preview.matchedFloorId;
+        matched = true;
+      }
+      const dimensions = preview?.width && preview?.height ? ` · ${preview.width}×${preview.height}` : "";
+      const problem = preview?.errors.length ? ` · ${preview.errors.join(", ")}` : "";
+      next.push({ file, floorId, matched, status: `${matched ? "asignado automáticamente" : "pendiente de asignar"}${dimensions}${problem}` });
     }
     setAssignments((prev) => [...prev, ...next]);
   }
@@ -80,7 +91,8 @@ export function CargaInicialWizard({ structure }: { structure: WizardStructure }
         continue;
       }
       let formData = new FormData();
-      formData.append("file", assignment.file);
+       formData.append("file", assignment.file);
+       formData.append("source", "initial-load");
       let res = await fetch(`/api/floors/${assignment.floorId}/plan`, { method: "POST", body: formData });
       let data = await res.json();
       if (res.status === 409 && data?.error?.code === "ASPECT_CHANGED") {
@@ -88,6 +100,7 @@ export function CargaInicialWizard({ structure }: { structure: WizardStructure }
           formData = new FormData();
           formData.append("file", assignment.file);
           formData.append("confirmAspect", "true");
+          formData.append("source", "initial-load");
           res = await fetch(`/api/floors/${assignment.floorId}/plan`, { method: "POST", body: formData });
           data = await res.json();
         }
@@ -186,15 +199,12 @@ export function CargaInicialWizard({ structure }: { structure: WizardStructure }
       ) : null}
 
       {step === 3 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Directorio de usuarios (opcional)</CardTitle>
-            <CardDescription>
-              La importación de <code>ad-usuarios.csv</code> (RF-17) se implementa en la tarea T-59 de
-              la fase F8. Puedes saltarte este paso.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">
+            Paso opcional: importa <code>ad-usuarios.csv</code> para asociar nombres, departamentos y teléfonos.
+          </p>
+          <ImportTab kind="directory" />
+        </div>
       ) : null}
 
       {step === 4 ? (

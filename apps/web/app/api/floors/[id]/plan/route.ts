@@ -70,6 +70,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const form = await req.formData();
     const file = form.get("file");
     const confirmAspect = form.get("confirmAspect") === "true";
+    const fromInitialLoad = form.get("source") === "initial-load";
     if (!(file instanceof File)) {
       throw new ApiError(400, "BAD_REQUEST", "Falta el fichero (campo 'file')");
     }
@@ -138,7 +139,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
     await audit({
       userId: user.id,
-      action: "floor.plan_upload",
+      action: fromInitialLoad ? "import.plans" : "floor.plan_upload",
       entity: "Floor",
       entityId: id,
       data: { planFile, width, height, aspectChanged: changed },

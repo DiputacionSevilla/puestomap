@@ -1,0 +1,26 @@
+tipo;codigo;nombre;edificio_codigo;planta_nombre;nivel;departamento_codigo;rect_x;rect_y;rect_w;rect_h
+EDIFICIO;AYTO;Ayuntamiento;;;;;;;;
+PLANTA;;Planta baja;AYTO;Planta baja;0;;;;;
+PLANTA;;Planta 1;AYTO;Planta 1;1;;;;;
+PLANTA;;Planta 2;AYTO;Planta 2;2;;;;;
+DEPARTAMENTO;ADM;Administracion;;;;;;;;
+DEPARTAMENTO;TEC;Servicios tecnicos;;;;;;;;
+DEPARTAMENTO;CIU;Atencion ciudadana;;;;;;;;
+DESPACHO;PB-01;Despacho PB-01;AYTO;Planta baja;;ADM;0.03;0.08;0.28;0.36
+DESPACHO;PB-02;Despacho PB-02;AYTO;Planta baja;;ADM;0.36;0.08;0.28;0.36
+DESPACHO;PB-03;Despacho PB-03;AYTO;Planta baja;;CIU;0.69;0.08;0.28;0.36
+DESPACHO;PB-04;Despacho PB-04;AYTO;Planta baja;;CIU;0.03;0.56;0.28;0.36
+DESPACHO;PB-05;Despacho PB-05;AYTO;Planta baja;;TEC;0.36;0.56;0.28;0.36
+DESPACHO;PB-06;Despacho PB-06;AYTO;Planta baja;;TEC;0.69;0.56;0.28;0.36
+DESPACHO;P1-01;Despacho P1-01;AYTO;Planta 1;;ADM;0.03;0.08;0.28;0.36
+DESPACHO;P1-02;Despacho P1-02;AYTO;Planta 1;;ADM;0.36;0.08;0.28;0.36
+DESPACHO;P1-03;Despacho P1-03;AYTO;Planta 1;;CIU;0.69;0.08;0.28;0.36
+DESPACHO;P1-04;Despacho P1-04;AYTO;Planta 1;;CIU;0.03;0.56;0.28;0.36
+DESPACHO;P1-05;Despacho P1-05;AYTO;Planta 1;;TEC;0.36;0.56;0.28;0.36
+DESPACHO;P1-06;Despacho P1-06;AYTO;Planta 1;;TEC;0.69;0.56;0.28;0.36
+DESPACHO;P2-01;Despacho P2-01;AYTO;Planta 2;;ADM;0.03;0.08;0.28;0.36
+DESPACHO;P2-02;Despacho P2-02;AYTO;Planta 2;;ADM;0.36;0.08;0.28;0.36
+DESPACHO;P2-03;Despacho P2-03;AYTO;Planta 2;;CIU;0.69;0.08;0.28;0.36
+DESPACHO;P2-04;Despacho P2-04;AYTO;Planta 2;;CIU;0.03;0.56;0.28;0.36
+DESPACHO;P2-05;Despacho P2-05;AYTO;Planta 2;;TEC;0.36;0.56;0.28;0.36
+DESPACHO;P2-06;Despacho P2-06;AYTO;Planta 2;;TEC;0.69;0.56;0.28;0.36

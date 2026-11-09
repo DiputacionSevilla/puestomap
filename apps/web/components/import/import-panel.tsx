@@ -23,6 +23,8 @@ const TEMPLATE_COMPUTERS =
 
 const TEMPLATE_STRUCTURE =
   "\uFEFFtipo;codigo;nombre;edificio_codigo;planta_nombre;nivel;departamento_codigo;rect_x;rect_y;rect_w;rect_h\r\nEDIFICIO;AYTO;Ayuntamiento;;;;;;;\r\nPLANTA;;Planta baja;AYTO;;0;;;\r\nDEPARTAMENTO;INTERV;Intervención;;;;;\r\nDESPACHO;PB-01;Despacho 1;AYTO;Planta baja;;INTERV;0.1;0.1;0.2;0.2\r\n";
+const TEMPLATE_DIRECTORY =
+  "\uFEFFSamAccountName;DisplayName;GivenName;Surname;Department;Title;Office;TelephoneNumber\r\njlopez;Juana López;Juana;López;Intervención;Administrativa;PB-01;2104\r\n";
 
 function download(name: string, content: string) {
   const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
@@ -40,11 +42,12 @@ function actionBadge(action: string) {
   return <Badge variant={variant}>{action}</Badge>;
 }
 
-export function ImportTab({ kind }: { kind: "computers" | "structure" }) {
+export function ImportTab({ kind }: { kind: "computers" | "structure" | "directory" }) {
   const [csv, setCsv] = useState<string | null>(null);
   const [fileName, setFileName] = useState("");
   const [crearEquipos, setCrearEquipos] = useState(true);
   const [omitirErrores, setOmitirErrores] = useState(false);
+  const [marcarAusentesInactivos, setMarcarAusentesInactivos] = useState(false);
   const [rows, setRows] = useState<PreviewRow[] | null>(null);
   const [summary, setSummary] = useState<Record<string, number> | null>(null);
   const [result, setResult] = useState<Record<string, number | string | null> | null>(null);
@@ -60,7 +63,7 @@ export function ImportTab({ kind }: { kind: "computers" | "structure" }) {
       const res = await fetch(`/api/import/${kind}/preview`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ csv, crearEquipos }),
+        body: JSON.stringify({ csv, crearEquipos, marcarAusentesInactivos }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -85,7 +88,7 @@ export function ImportTab({ kind }: { kind: "computers" | "structure" }) {
       const res = await fetch(`/api/import/${kind}/commit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ csv, crearEquipos, omitirErrores, fileName }),
+        body: JSON.stringify({ csv, crearEquipos, omitirErrores, marcarAusentesInactivos, fileName }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -102,7 +105,7 @@ export function ImportTab({ kind }: { kind: "computers" | "structure" }) {
     <Card>
       <CardHeader>
         <CardTitle className="text-sm">
-          {kind === "computers" ? "Importar equipos" : "Importar estructura física"}
+          {kind === "computers" ? "Importar equipos" : kind === "structure" ? "Importar estructura física" : "Importar directorio de usuarios"}
         </CardTitle>
         <CardDescription>
           CSV en UTF-8 con separador «;», columnas por cabecera (el orden no importa). Las celdas
@@ -136,8 +139,8 @@ export function ImportTab({ kind }: { kind: "computers" | "structure" }) {
             size="sm"
             onClick={() =>
               download(
-                kind === "computers" ? "plantilla-equipos.csv" : "plantilla-estructura.csv",
-                kind === "computers" ? TEMPLATE_COMPUTERS : TEMPLATE_STRUCTURE,
+                kind === "computers" ? "plantilla-equipos.csv" : kind === "structure" ? "plantilla-estructura.csv" : "plantilla-ad-usuarios.csv",
+                kind === "computers" ? TEMPLATE_COMPUTERS : kind === "structure" ? TEMPLATE_STRUCTURE : TEMPLATE_DIRECTORY,
               )
             }
           >
@@ -155,6 +158,12 @@ export function ImportTab({ kind }: { kind: "computers" | "structure" }) {
                 Omitir filas con error
               </label>
             </>
+          ) : null}
+          {kind === "directory" ? (
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={marcarAusentesInactivos} onChange={(e) => setMarcarAusentesInactivos(e.target.checked)} />
+              Marcar como inactivos los usuarios ausentes
+            </label>
           ) : null}
           <Button onClick={preview} disabled={!csv || busy}>
             Previsualizar

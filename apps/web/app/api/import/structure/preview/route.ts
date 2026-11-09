@@ -1,5 +1,6 @@
+import { parseCsvTable, validateStructureImport } from "@puestomap/shared";
 import { errorResponse, jsonOk, requireRole } from "@/lib/api";
-import { parseStructureCsv, validateStructureRows } from "@/lib/import-csv";
+import { loadStructureCtx } from "@/lib/import-apply";
 
 export const dynamic = "force-dynamic";
 
@@ -10,14 +11,23 @@ export async function POST(req: Request) {
     if (typeof body.csv !== "string" || body.csv.length === 0) {
       return jsonOk({ error: { code: "VALIDATION", message: "Falta el CSV" } }, 422);
     }
-    const rows = parseStructureCsv(body.csv);
-    const results = validateStructureRows(rows);
+    const { rows } = parseCsvTable(body.csv);
+    const ctx = await loadStructureCtx();
+    const results = validateStructureImport(rows, ctx);
     return jsonOk({
-      rows: results.map((r) => ({ line: r.line, data: r.data, errors: r.errors })),
+      rows: results.map((r) => ({
+        line: r.line,
+        action: r.action,
+        data: r.values,
+        warnings: r.warnings,
+        errors: r.errors,
+      })),
       summary: {
         total: results.length,
-        valid: results.filter((r) => r.errors.length === 0).length,
-        invalid: results.filter((r) => r.errors.length > 0).length,
+        crear: results.filter((r) => r.action === "crear").length,
+        actualizar: results.filter((r) => r.action === "actualizar").length,
+        sinCambios: results.filter((r) => r.action === "sin cambios").length,
+        errores: results.filter((r) => r.errors.length > 0).length,
       },
     });
   } catch (err) {

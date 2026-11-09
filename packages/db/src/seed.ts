@@ -2,9 +2,10 @@ import bcrypt from "bcryptjs";
 import { randomBytes } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { normalizeHostname } from "@puestomap/shared";
+import { normalizeHostname, normalizeAdUser } from "@puestomap/shared";
 import { encryptSecret } from "@puestomap/shared/crypto";
 import { PrismaClient, Prisma } from "@prisma/client";
+import { backfillLastUserNorm } from "./backfill.js";
 
 const prisma = new PrismaClient();
 
@@ -248,7 +249,14 @@ function buildComputers(): ComputerSpec[] {
 async function seedComputers(credentialId: string) {
   const now = Date.now();
   const day = 24 * 60 * 60 * 1000;
-  const users = ["María López", "Juan García", "Ana Romero", "Luis Ortega", "Carmen Ruiz", "Pedro León"];
+  const people = [
+    { login: "mlopez", name: "María López" },
+    { login: "jgarcia", name: "Juan García" },
+    { login: "aromero", name: "Ana Romero" },
+    { login: "lortega", name: "Luis Ortega" },
+    { login: "cruiz", name: "Carmen Ruiz" },
+    { login: "pleon", name: "Pedro León" },
+  ];
   const osVersions = ["Windows 10 Pro 22H2", "Windows 11 Pro 23H2", "Windows 10 Pro 21H2"];
 
   for (const spec of buildComputers()) {
@@ -265,7 +273,14 @@ async function seedComputers(credentialId: string) {
       cpu: "Intel Core i5-10500",
       ramMb: spec.n % 3 === 0 ? 8192 : 16384,
       diskGb: 512,
-      lastUser: users[spec.n % users.length],
+        lastUser: spec.n % 9 === 5 ? null : people[spec.n % people.length].login,
+        lastUserNorm: spec.n % 9 === 5 ? null : normalizeAdUser(people[spec.n % people.length].login),
+        adUsername:
+          spec.n % 4 === 0
+            ? null
+            : spec.n % 7 === 2
+              ? "usuario.distinto"
+              : normalizeAdUser(people[spec.n % people.length].login),
       ocsLastInventory: spec.staleOcs ? new Date(now - 45 * day) : new Date(now - 2 * day),
       source: "OCS" as const,
       ocsId: 9000 + spec.n,
@@ -350,7 +365,7 @@ async function seedComputers(credentialId: string) {
         id: `seed-c-${String(spec.n).padStart(2, "0")}`,
         hostname,
         ...base,
-        assignedTo: users[spec.n % users.length],
+        assignedTo: people[spec.n % people.length].name,
         phoneExt: String(2100 + spec.n),
         notes: spec.staleOcs ? "Equipo no visto en OCS en más de 30 días" : null,
         assetTag: `INV-${String(spec.n).padStart(5, "0")}`,
@@ -421,6 +436,8 @@ async function main() {
   await seedStructure();
   const credential = await seedCredential(vncEncKey);
   await seedComputers(credential.id);
+  const backfilled = await backfillLastUserNorm(prisma);
+  if (backfilled > 0) console.log(`[seed] backfill lastUserNorm: ${backfilled} equipos`);
 
   const counts = {
     users: await prisma.user.count(),

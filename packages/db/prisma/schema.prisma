@@ -146,6 +146,8 @@ model Computer {
   assignedTo       String?
   phoneExt         String?
   notes            String?
+  adUsername       String?
+  lastUserNorm     String?
   floorId          String?
   floor            Floor?         @relation(fields: [floorId], references: [id])
   officeId         String?
@@ -176,6 +178,8 @@ model Computer {
   @@index([floorId])
   @@index([departmentId])
   @@index([lastUser])
+  @@index([adUsername])
+  @@index([lastUserNorm])
 }
 
 model ComputerScreen {
@@ -215,6 +219,9 @@ model RemoteSession {
   screenId    String?
   screenLabel String?
   groupId     String?
+  desktopName String?
+  identityOk  Boolean?
+  resolvedBy  String?
   @@index([groupId])
   @@index([computerId, createdAt])
   @@index([status])
@@ -247,4 +254,22 @@ model AuditLog {
 model Setting {
   key   String @id
   value Json
+}
+
+model DirectoryUser {
+  id          String   @id @default(cuid())
+  username    String   @unique
+  displayName String
+  givenName   String?
+  surname     String?
+  department  String?
+  title       String?
+  office      String?
+  phone       String?
+  searchName  String
+  active      Boolean  @default(true)
+  source      String   @default("AD_CSV")
+  importedAt  DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([searchName])
 }

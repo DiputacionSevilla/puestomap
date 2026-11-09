@@ -1,4 +1,7 @@
 export * from "./types.js";
+export * from "./keys.js";
+export * from "./ad-user.js";
+export * from "./name-match.js";
 export * from "./hostname.js";
 export * from "./geo.js";
 export * from "./rfb.js";
@@ -6,5 +9,7 @@ export * from "./cidr.js";
 export * from "./vnc-status.js";
 export * from "./probe-update.js";
 export * from "./screens.js";
+export * from "./svg-validate.js";
 export * from "./csv.js";
+export * from "./import-rules.js";
 export * from "./schemas.js";

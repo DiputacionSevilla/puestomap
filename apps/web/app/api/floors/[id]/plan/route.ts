@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { imageSize } from "image-size";
+import { aspectChanged, validateSvg } from "@puestomap/shared";
 import { getPrisma } from "@puestomap/db";
 import { ApiError, errorResponse, jsonOk, requireRole } from "@/lib/api";
 import { audit, clientIp } from "@/lib/audit";
@@ -22,6 +23,11 @@ const CONTENT_TYPES: Record<string, string> = {
   svg: "image/svg+xml",
 };
 
+function svgMaxBytes(): number {
+  const mb = Number(process.env.SVG_MAX_MB ?? 2);
+  return (Number.isFinite(mb) && mb > 0 ? mb : 2) * 1024 * 1024;
+}
+
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     await requireRole();
@@ -36,12 +42,15 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
 
     const ext = floor.planFile.split(".").pop() ?? "";
     const buffer = readFileSync(filePath);
-    return new Response(new Uint8Array(buffer), {
-      headers: {
-        "Content-Type": CONTENT_TYPES[ext] ?? "application/octet-stream",
-        "Cache-Control": "private, max-age=3600",
-      },
-    });
+    const headers: Record<string, string> = {
+      "Content-Type": CONTENT_TYPES[ext] ?? "application/octet-stream",
+      "Cache-Control": "private, max-age=3600",
+      "X-Content-Type-Options": "nosniff",
+    };
+    if (ext === "svg") {
+      headers["Content-Security-Policy"] = "default-src 'none'; style-src 'unsafe-inline'; sandbox";
+    }
+    return new Response(new Uint8Array(buffer), { headers });
   } catch (err) {
     return errorResponse(err);
   }
@@ -52,11 +61,15 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const user = await requireRole("ADMIN");
     const { id } = await ctx.params;
     const prisma = getPrisma();
-    const floor = await prisma.floor.findUnique({ where: { id } });
+    const floor = await prisma.floor.findUnique({
+      where: { id },
+      select: { id: true, planWidth: true, planHeight: true, planFile: true },
+    });
     if (!floor) throw new ApiError(404, "NOT_FOUND", "Planta no encontrada");
 
     const form = await req.formData();
     const file = form.get("file");
+    const confirmAspect = form.get("confirmAspect") === "true";
     if (!(file instanceof File)) {
       throw new ApiError(400, "BAD_REQUEST", "Falta el fichero (campo 'file')");
     }
@@ -71,15 +84,44 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const buffer = Buffer.from(await file.arrayBuffer());
     let width: number | undefined;
     let height: number | undefined;
-    try {
-      const size = imageSize(buffer);
-      width = size.width;
-      height = size.height;
-    } catch {
-      throw new ApiError(422, "VALIDATION", "No se pudo leer la imagen del plano");
+
+    if (ext === "svg") {
+      const result = validateSvg(buffer, svgMaxBytes());
+      if (!result.ok) {
+        throw new ApiError(422, "VALIDATION", `SVG no admitido: ${result.errors.join("; ")}`);
+      }
+      width = result.width;
+      height = result.height;
+    } else {
+      try {
+        const size = imageSize(buffer);
+        width = size.width;
+        height = size.height;
+      } catch {
+        throw new ApiError(422, "VALIDATION", "No se pudo leer la imagen del plano");
+      }
     }
     if (!width || !height) {
       throw new ApiError(422, "VALIDATION", "El plano no tiene dimensiones válidas");
+    }
+
+    const previous =
+      floor.planWidth && floor.planHeight
+        ? { w: floor.planWidth, h: floor.planHeight }
+        : null;
+    const changed = previous !== null && aspectChanged(previous, { w: width, h: height });
+    if (changed && !confirmAspect) {
+      return jsonOk(
+        {
+          error: {
+            code: "ASPECT_CHANGED",
+            message:
+              "El nuevo plano tiene una proporción distinta: las posiciones guardadas pueden quedar desplazadas.",
+            details: { previous, next: { w: width, h: height } },
+          },
+        },
+        409,
+      );
     }
 
     const uploadsDir = process.env.UPLOADS_DIR ?? path.resolve(process.cwd(), "uploads");
@@ -89,8 +131,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     writeFileSync(path.join(plansDir, fileName), buffer);
     const planFile = `plans/${fileName}`;
 
-    // Reemplazar el plano conserva las posiciones normalizadas (DM-7): solo cambian dimensiones.
-    const updated = await prisma.floor.update({
+    await prisma.floor.update({
       where: { id },
       data: { planFile, planWidth: width, planHeight: height },
     });
@@ -100,10 +141,16 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       action: "floor.plan_upload",
       entity: "Floor",
       entityId: id,
-      data: { planFile, width, height },
+      data: { planFile, width, height, aspectChanged: changed },
       ip: clientIp(req),
     });
-    return jsonOk({ planFile: updated.planFile, planWidth: updated.planWidth, planHeight: updated.planHeight });
+    return jsonOk({
+      planFile,
+      width,
+      height,
+      aspectChanged: changed,
+      previous,
+    });
   } catch (err) {
     return errorResponse(err);
   }

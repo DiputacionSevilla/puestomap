@@ -5,16 +5,24 @@ import { Download, FileUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/dialog";
 
-type PreviewRow = { line: number; data: unknown; errors: string[] };
+type ImportIssue = { code: string; detail: string };
+type PreviewRow = {
+  line: number;
+  action: string;
+  data: unknown;
+  errors: ImportIssue[];
+  warnings: ImportIssue[];
+};
 
 const TEMPLATE_COMPUTERS =
-  "\uFEFFhostname;ip;asignado_a;extension;edificio_codigo;planta_nombre;despacho_codigo;departamento_codigo;pos_x;pos_y;puerto_vnc;credencial;notas;asset_tag\r\nPC-INT-01;10.1.2.34;María López;2104;CASA-CONSIST;Primera;P1-07;INTERV;0.4215;0.3380;5900;Estándar 2024;;INV-00123\r\n";
+  "\uFEFFhostname;ip;asignado_a;extension;edificio_codigo;planta_nombre;despacho_codigo;departamento_codigo;pos_x;pos_y;puerto_vnc;credencial;notas;asset_tag;usuario_dominio\r\nPC-INT-01;10.1.2.34;María López;2104;AYTO;Planta baja;PB-01;INTERV;0.4215;0.3380;5900;Estándar 2024;;INV-00123;AYTO\\mlopez\r\n";
 
 const TEMPLATE_STRUCTURE =
-  "\uFEFFtipo;codigo;nombre;edificio_codigo;planta_nombre;nivel;departamento_codigo\r\nEDIFICIO;CASA-CONSIST;Casa Consistorial;;;;\r\nPLANTA;;Primera;CASA-CONSIST;;1;\r\nDEPARTAMENTO;INTERV;Intervención;;;;\r\nDESPACHO;P1-07;Despacho Intervención;CASA-CONSIST;Primera;;INTERV\r\n";
+  "\uFEFFtipo;codigo;nombre;edificio_codigo;planta_nombre;nivel;departamento_codigo;rect_x;rect_y;rect_w;rect_h\r\nEDIFICIO;AYTO;Ayuntamiento;;;;;;;\r\nPLANTA;;Planta baja;AYTO;;0;;;\r\nDEPARTAMENTO;INTERV;Intervención;;;;;\r\nDESPACHO;PB-01;Despacho 1;AYTO;Planta baja;;INTERV;0.1;0.1;0.2;0.2\r\n";
 
 function download(name: string, content: string) {
   const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
@@ -26,13 +34,20 @@ function download(name: string, content: string) {
   URL.revokeObjectURL(url);
 }
 
-function ImportTab({ kind }: { kind: "computers" | "structure" }) {
+function actionBadge(action: string) {
+  const variant =
+    action === "error" ? "destructive" : action === "sin cambios" ? "secondary" : "default";
+  return <Badge variant={variant}>{action}</Badge>;
+}
+
+export function ImportTab({ kind }: { kind: "computers" | "structure" }) {
   const [csv, setCsv] = useState<string | null>(null);
   const [fileName, setFileName] = useState("");
-  const [createMissing, setCreateMissing] = useState(false);
+  const [crearEquipos, setCrearEquipos] = useState(true);
+  const [omitirErrores, setOmitirErrores] = useState(false);
   const [rows, setRows] = useState<PreviewRow[] | null>(null);
-  const [summary, setSummary] = useState<{ total: number; valid: number; invalid: number } | null>(null);
-  const [result, setResult] = useState<Record<string, number> | null>(null);
+  const [summary, setSummary] = useState<Record<string, number> | null>(null);
+  const [result, setResult] = useState<Record<string, number | string | null> | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,7 +60,7 @@ function ImportTab({ kind }: { kind: "computers" | "structure" }) {
       const res = await fetch(`/api/import/${kind}/preview`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ csv, createMissing }),
+        body: JSON.stringify({ csv, crearEquipos }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -70,7 +85,7 @@ function ImportTab({ kind }: { kind: "computers" | "structure" }) {
       const res = await fetch(`/api/import/${kind}/commit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ csv, createMissing }),
+        body: JSON.stringify({ csv, crearEquipos, omitirErrores, fileName }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -90,11 +105,8 @@ function ImportTab({ kind }: { kind: "computers" | "structure" }) {
           {kind === "computers" ? "Importar equipos" : "Importar estructura física"}
         </CardTitle>
         <CardDescription>
-          CSV en UTF-8 con separador «;». Previsualiza antes de confirmar: las filas con errores no se
-          importan.
-          {kind === "computers"
-            ? " Las celdas vacías no modifican los datos existentes."
-            : ""}
+          CSV en UTF-8 con separador «;», columnas por cabecera (el orden no importa). Las celdas
+          vacías no modifican los datos existentes. Las filas con errores no se importan.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -133,18 +145,21 @@ function ImportTab({ kind }: { kind: "computers" | "structure" }) {
             Descargar plantilla
           </Button>
           {kind === "computers" ? (
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox
-                checked={createMissing}
-                onChange={(e) => setCreateMissing(e.target.checked)}
-              />
-              Crear edificios/plantas/departamentos/despachos que no existan
-            </label>
+            <>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={crearEquipos} onChange={(e) => setCrearEquipos(e.target.checked)} />
+                Crear equipos desconocidos
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={omitirErrores} onChange={(e) => setOmitirErrores(e.target.checked)} />
+                Omitir filas con error
+              </label>
+            </>
           ) : null}
           <Button onClick={preview} disabled={!csv || busy}>
             Previsualizar
           </Button>
-          <Button onClick={commit} disabled={!rows || busy || summary?.valid === 0}>
+          <Button onClick={commit} disabled={!rows || busy || summary?.errores === summary?.total}>
             Confirmar importación
           </Button>
         </div>
@@ -153,16 +168,24 @@ function ImportTab({ kind }: { kind: "computers" | "structure" }) {
 
         {summary ? (
           <p className="text-sm">
-            {summary.total} filas · {summary.valid} válidas · {summary.invalid} con errores
+            {summary.total} filas · {summary.crear ?? 0} crear · {summary.actualizar ?? 0} actualizar ·{" "}
+            {summary.sinCambios ?? 0} sin cambios · {summary.errores ?? 0} con errores ·{" "}
+            {summary.avisos ?? 0} con avisos
           </p>
         ) : null}
 
         {result ? (
-          <p className="text-sm text-green-600">
-            Importación completada: {result.created ?? 0} creados, {result.updated ?? 0} actualizados,
-            {result.unchanged !== undefined ? ` ${result.unchanged} sin cambios,` : ""} {result.errors ?? 0} con
-            errores.
-          </p>
+          <div className="space-y-1 text-sm text-green-600">
+            <p>
+              Importación completada: {result.created ?? 0} creados, {result.updated ?? 0} actualizados,{" "}
+              {result.unchanged ?? 0} sin cambios, {result.errors ?? 0} con errores.
+            </p>
+            {typeof result.erroresUrl === "string" && result.erroresUrl ? (
+              <a className="underline" href={result.erroresUrl}>
+                Descargar errores.csv
+              </a>
+            ) : null}
+          </div>
         ) : null}
 
         {rows ? (
@@ -171,19 +194,30 @@ function ImportTab({ kind }: { kind: "computers" | "structure" }) {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-14">Línea</TableHead>
+                  <TableHead className="w-28">Estado</TableHead>
                   <TableHead>Contenido</TableHead>
-                  <TableHead>Errores</TableHead>
+                  <TableHead>Avisos / errores</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rows.map((row) => (
                   <TableRow key={row.line} className={row.errors.length > 0 ? "bg-destructive/10" : ""}>
                     <TableCell>{row.line}</TableCell>
-                    <TableCell className="max-w-[520px] truncate text-xs">
+                    <TableCell>{actionBadge(row.action)}</TableCell>
+                    <TableCell className="max-w-[380px] truncate text-xs">
                       {JSON.stringify(row.data)}
                     </TableCell>
-                    <TableCell className="text-xs text-destructive">
-                      {row.errors.join("; ")}
+                    <TableCell className="max-w-[260px] text-xs">
+                      {row.errors.map((e) => (
+                        <div key={`e${e.code}${e.detail}`} className="text-destructive">
+                          {e.code}: {e.detail}
+                        </div>
+                      ))}
+                      {row.warnings.map((w) => (
+                        <div key={`w${w.code}${w.detail}`} className="text-amber-600">
+                          {w.code}: {w.detail}
+                        </div>
+                      ))}
                     </TableCell>
                   </TableRow>
                 ))}

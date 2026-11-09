@@ -146,8 +146,14 @@ export function StructureAdmin({
   async function uploadPlan(floorId: string, file: File) {
     const formData = new FormData();
     formData.append("file", file);
-    const res = await fetch(`/api/floors/${floorId}/plan`, { method: "POST", body: formData });
-    const data = await res.json();
+    let res = await fetch(`/api/floors/${floorId}/plan`, { method: "POST", body: formData });
+    let data = await res.json();
+    if (res.status === 409 && data?.error?.code === "ASPECT_CHANGED") {
+      if (!window.confirm(`${data.error.message}\n\n¿Continuar igualmente?`)) return;
+      formData.append("confirmAspect", "true");
+      res = await fetch(`/api/floors/${floorId}/plan`, { method: "POST", body: formData });
+      data = await res.json();
+    }
     if (!res.ok) {
       window.alert(data?.error?.message ?? "No se pudo subir el plano.");
       return;

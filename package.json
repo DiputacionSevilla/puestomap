@@ -25,6 +25,7 @@
     "db:deploy": "prisma migrate deploy --schema packages/db/prisma/schema.prisma",
     "db:generate": "prisma generate --schema packages/db/prisma/schema.prisma",
     "db:seed": "npm run build:libs && node --env-file-if-exists=.env packages/db/dist/seed.js",
+    "db:backfill": "npm run build:libs && node --env-file-if-exists=.env packages/db/dist/backfill.js",
     "gen:secrets": "node scripts/gen-secrets.mjs",
     "smoke": "node scripts/smoke.mjs"
   },

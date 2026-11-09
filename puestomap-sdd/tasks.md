@@ -71,12 +71,12 @@ criterios de aceptación cumplidos + `npm run verify` en verde + commit.
 - [ ] T-41 Sincronización de ubicaciones con GLPI (`externalRef`).
 
 ## F8 — CR-01: carga de ubicaciones, planos y usuarios del dominio (specs/10)
-- [ ] T-50 Reconciliación y ADR (§0); tabla en `docs/progress.md`.
-- [ ] T-51 Modelo (§3): migración aditiva, backfill de `lastUserNorm`, mapper OCS escribe `lastUserNorm`, `.env.example`.
-- [ ] T-52 `shared`: `keys`, `ad-user`, `name-match`, `geo` (ampliado), `svg-validate` + T-U12…T-U15.
-- [ ] T-53 Planos: validación y servicio seguro de SVG/imagen, aviso de proporción, cabeceras (§5.4).
-- [ ] T-54 Importación de estructura con `rect_*`, lectura por cabecera, informe y reglas (§5.1) + T-U10+.
-- [ ] T-55 Importación de equipos ampliada (§5.2), `errores.csv`, opciones `crearEquipos`/`omitirErrores` + T-U10+.
+- [x] T-50 Reconciliación y ADR (§0); tabla en `docs/progress.md`.
+- [x] T-51 Modelo (§3): migración aditiva, backfill de `lastUserNorm`, mapper OCS escribe `lastUserNorm`, `.env.example`.
+- [x] T-52 `shared`: `keys`, `ad-user`, `name-match`, `geo` (ampliado), `svg-validate` + T-U12…T-U15.
+- [x] T-53 Planos: validación y servicio seguro de SVG/imagen, aviso de proporción, cabeceras (§5.4).
+- [x] T-54 Importación de estructura con `rect_*`, lectura por cabecera, informe y reglas (§5.1) + T-U10+.
+- [x] T-55 Importación de equipos ampliada (§5.2), `errores.csv`, opciones `crearEquipos`/`omitirErrores` + T-U10+.
 - [ ] T-56 Asistente `/importar/carga-inicial` pasos 1, 2 y 4 (RF-16).
 - [ ] T-57 Mapa: despacho automático al soltar (RF-04 CA-6), capa de despachos, tooltip, etiqueta configurable, filtro de departamento (CA-10…13).
 - [ ] T-58 Fixtures `fixtures/carga-ayto/` y pruebas de aceptación T-I5 (+ T-E2 opcional).

@@ -1,4 +1,4 @@
-﻿<#
+<#
   Payload que Deploy-GlpiAgentRemote.ps1 copia y ejecuta EN cada equipo (como SYSTEM).
   Solo ASCII a proposito: se copia tal cual y se ejecuta con Windows PowerShell 5.1.
 
@@ -15,13 +15,15 @@ param(
     [string] $MsiPath = 'C:\Windows\Temp\glpi-agent.msi',
     [string] $Tag = '',
     [string] $ExpectedName = '',
-    [int]    $RemoveOld = 1
+    [int]    $RemoveOld = 1,
+    [string] $VncMsiPath = '',
+    [string] $VncPasswordFile = ''
 )
 
 $ErrorActionPreference = 'Stop'
 $r = [ordered]@{
     computer = $env:COMPUTERNAME; productType = $null; os = ''; status = ''; detail = '';
-    glpiVersion = ''; old = @(); needInstall = $false; exitCode = $null
+    glpiVersion = ''; old = @(); needInstall = $false; exitCode = $null; vnc = ''; needVnc = $false
 }
 
 function Save-Result {
@@ -65,10 +67,19 @@ try {
     $r.old = @($old | ForEach-Object { [string]$_.DisplayName })
     $r.needInstall = [bool]((-not $glpi) -or ($have -and $target -and $have -lt $target))
 
+    if ($VncMsiPath) {
+        $vncSvc = Get-Service -Name 'tvnserver', 'uvnc_service', 'WinVNC4', 'vncserver' -ErrorAction SilentlyContinue | Select-Object -First 1
+        $vncApp = $programs | Where-Object { $_.DisplayName -match 'VNC' -and $_.DisplayName -notmatch 'Viewer|Visor' } | Select-Object -First 1
+        if ($vncSvc) { $r.vnc = "ya hay servicio VNC ($($vncSvc.Name))" }
+        elseif ($vncApp) { $r.vnc = "VNC instalado sin servicio ($($vncApp.DisplayName)); revisar a mano" }
+        else { $r.needVnc = $true; $r.vnc = 'falta' }
+    }
+
     if ($Mode -eq 'Plan') {
         $plan = @()
         if ($r.needInstall) { $plan += "instalaria GLPI Agent $TargetVersion" } else { $plan += "GLPI Agent ya instalado ($($r.glpiVersion))" }
         if ($old.Count -gt 0 -and $RemoveOld) { $plan += 'desinstalaria: ' + ($r.old -join ' + ') }
+        if ($VncMsiPath) { $plan += $(if ($r.needVnc) { 'instalaria TightVNC Server' } else { "VNC: $($r.vnc)" }) }
         $r.status = 'SIMULACION'; $r.detail = ($plan -join '; ') + " [$($os.Caption)]"
         Save-Result; exit 0
     }
@@ -109,7 +120,27 @@ try {
             $notes += "$($app.DisplayName): " + $(if ($p.ExitCode -in 0, 3010) { 'desinstalado' } else { "error $($p.ExitCode)" })
         }
     }
-    $r.status = if ($notes -match 'error|sin comando') { 'OK_CON_AVISOS' } else { 'OK' }
+    if ($r.needVnc) {
+        $pw = ''
+        try {
+            if ($VncPasswordFile -and (Test-Path -LiteralPath $VncPasswordFile)) { $pw = [System.IO.File]::ReadAllText($VncPasswordFile) }
+        }
+        finally {
+            if ($VncPasswordFile) { Remove-Item -LiteralPath $VncPasswordFile -Force -ErrorAction SilentlyContinue }
+        }
+        if (-not $pw) { $notes += 'VNC: no llego la contrasena; no instalado' }
+        elseif (-not (Test-Path -LiteralPath $VncMsiPath)) { $notes += 'VNC: falta el MSI; error' }
+        else {
+            # Sin log de msiexec a proposito: las propiedades llevan la contrasena
+            $va = @('/i', "`"$VncMsiPath`"", '/qn', '/norestart', 'ADDLOCAL=Server', 'SERVER_REGISTER_AS_SERVICE=1', 'SERVER_ADD_FIREWALL_EXCEPTION=1',
+                'SET_USEVNCAUTHENTICATION=1', 'VALUE_OF_USEVNCAUTHENTICATION=1', 'SET_PASSWORD=1', "VALUE_OF_PASSWORD=$pw",
+                'SET_USECONTROLAUTHENTICATION=1', 'VALUE_OF_USECONTROLAUTHENTICATION=1', 'SET_CONTROLPASSWORD=1', "VALUE_OF_CONTROLPASSWORD=$pw")
+            $pv = Start-Process -FilePath 'msiexec.exe' -ArgumentList $va -Wait -PassThru
+            $svcNow = Get-Service -Name 'tvnserver' -ErrorAction SilentlyContinue
+            if (($pv.ExitCode -in 0, 3010) -and $svcNow) { $notes += 'TightVNC instalado' } else { $notes += "VNC: error msiexec $($pv.ExitCode)" }
+        }
+    }
+    $r.status = if ($notes -match 'error|sin comando|VNC:') { 'OK_CON_AVISOS' } else { 'OK' }
     $r.detail = (@($(if ($r.needInstall) { "instalado $($r.glpiVersion)" } else { "ya estaba ($($r.glpiVersion))" })) + $notes) -join '; '
     Save-Result; exit 0
 }

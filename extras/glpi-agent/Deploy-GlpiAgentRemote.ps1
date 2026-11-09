@@ -29,6 +29,8 @@ param(
     [string]   $Server = 'https://soporte.mairenadelalcor.net/glpi/front/inventory.php',
     [string]   $Tag = '',
     [pscredential] $Credential,
+    [string]   $VncMsiPath = '',
+    [pscredential] $VncCredential,
     [string[]] $Only,
     [int]      $Limit = 0,
     [int]      $Throttle = 8,
@@ -49,6 +51,18 @@ if (-not (Test-Path -LiteralPath $MsiPath)) { throw "No existe el MSI: $MsiPath"
 if (-not (Test-Path -LiteralPath $CsvPath)) { throw "No existe el CSV: $CsvPath" }
 if ($Execute -and $CheckOnly) { throw '-Execute y -CheckOnly son incompatibles.' }
 $MsiPath = (Resolve-Path -LiteralPath $MsiPath).Path
+$vncPlain = ''
+if ($VncMsiPath) {
+    if (-not (Test-Path -LiteralPath $VncMsiPath)) { throw "No existe el MSI de TightVNC: $VncMsiPath" }
+    $VncMsiPath = (Resolve-Path -LiteralPath $VncMsiPath).Path
+    if ($Execute) {
+        if (-not $VncCredential) { $VncCredential = Get-Credential -UserName 'VNC' -Message 'Contrasena VNC de PuestoMap (el usuario se ignora)' }
+        if (-not $VncCredential) { throw 'Hace falta la contrasena VNC.' }
+        $vncPlain = $VncCredential.GetNetworkCredential().Password
+        if ($vncPlain -notmatch '^[\x21-\x7E]{1,64}$' -or $vncPlain.Contains('"')) { throw 'La contrasena VNC solo puede llevar caracteres ASCII visibles, sin espacios ni comillas.' }
+        if ($vncPlain.Length -gt 8) { Write-Warning 'TightVNC solo usa los 8 primeros caracteres de la contrasena; se usaran esos.'; $vncPlain = $vncPlain.Substring(0, 8) }
+    }
+}
 $PayloadPath = Join-Path $PSScriptRoot 'Glpi-Agent-Payload.ps1'
 if (-not (Test-Path -LiteralPath $PayloadPath)) { throw "Falta $PayloadPath (debe estar junto a este script)." }
 if (-not $ResultsPath) { $ResultsPath = Join-Path (Get-Location) ('deploy-results-{0:yyyyMMdd-HHmmss}.csv' -f (Get-Date)) }
@@ -103,6 +117,7 @@ function Get-MsiVersion([string]$Path) {
 }
 $msiVersion = Get-MsiVersion $MsiPath
 $modeText = if ($Execute) { 'REAL (instala y desinstala)' } elseif ($CheckOnly) { 'COMPROBACION (solo abre ADMIN$)' } else { 'SIMULACION (sin instalar ni desinstalar)' }
+if ($VncMsiPath) { $modeText += ' + TightVNC si falta' }
 Write-Host ("Equipos a procesar: {0} | MSI {1} | Modo: {2}" -f $targets.Count, $msiVersion, $modeText)
 
 if ($Execute -and -not $Force) {
@@ -112,7 +127,7 @@ if ($Execute -and -not $Force) {
 
 # ------------------------------ Trabajo por equipo (se ejecuta en un job) ------------------------------
 $worker = {
-    param($Item, $MsiPath, $PayloadPath, $MsiVersion, $Server, $Tag, $Credential, $Execute, $SkipRemoveOld, $CheckOnly, $TimeoutMinutes, $ExcludeVendor, $ExcludeName)
+    param($Item, $MsiPath, $PayloadPath, $MsiVersion, $Server, $Tag, $Credential, $Execute, $SkipRemoveOld, $CheckOnly, $TimeoutMinutes, $ExcludeVendor, $ExcludeName, $VncMsiPath, $VncPlain)
     $ErrorActionPreference = 'Stop'
     if ($Execute -isnot [bool] -or $SkipRemoveOld -isnot [bool] -or $CheckOnly -isnot [bool]) { throw 'Parametros de modo invalidos; se aborta por seguridad.' }
     $result = [ordered]@{ Target = $Item.Target; Hostname = $Item.Hostname; RemoteName = ''; Status = ''; Detail = ''; Time = (Get-Date -Format 's') }
@@ -124,7 +139,7 @@ $worker = {
     }
 
     # Ejecuta el payload en el destino y devuelve su resultado (objeto) o lanza una excepcion
-    function Invoke-Payload([string]$Addr, [string]$AdminRoot, [bool]$IsLocal, [string]$Mode, [bool]$CopyMsi, [string]$ExpectedName) {
+    function Invoke-Payload([string]$Addr, [string]$AdminRoot, [bool]$IsLocal, [string]$Mode, [bool]$CopyMsi, [string]$ExpectedName, [bool]$CopyVnc = $false) {
         $id = 'gdp' + (Get-Date -Format 'HHmmss') + (Get-Random -Maximum 999)
         $tempLocal = Join-Path $AdminRoot 'Temp'
         $remoteTemp = if ($IsLocal) { $env:SystemRoot + '\Temp' } else { 'C:\Windows\Temp' }
@@ -134,7 +149,17 @@ $worker = {
             Copy-Item -LiteralPath $MsiPath -Destination (Join-Path $tempLocal "$id.msi") -Force
             $msiArg = " -MsiPath $remoteTemp\$id.msi"
         }
-        $psArgs = "-NoProfile -ExecutionPolicy Bypass -File $remoteTemp\$id.ps1 -Mode $Mode -ResultFile $remoteTemp\$id.json -Server $Server -TargetVersion $MsiVersion$msiArg -RemoveOld $(if ($SkipRemoveOld) { 0 } else { 1 })"
+        $vncArg = ''
+        if ($VncMsiPath) {
+            $vncArg = " -VncMsiPath $remoteTemp\$id.vnc.msi"
+            if ($CopyVnc) {
+                Copy-Item -LiteralPath $VncMsiPath -Destination (Join-Path $tempLocal "$id.vnc.msi") -Force
+                # La contrasena va en un fichero que el payload borra al leerlo (no en la linea de comandos del servicio)
+                [System.IO.File]::WriteAllText((Join-Path $tempLocal "$id.pw"), $VncPlain, [System.Text.Encoding]::ASCII)
+                $vncArg += " -VncPasswordFile $remoteTemp\$id.pw"
+            }
+        }
+        $psArgs = "-NoProfile -ExecutionPolicy Bypass -File $remoteTemp\$id.ps1 -Mode $Mode -ResultFile $remoteTemp\$id.json -Server $Server -TargetVersion $MsiVersion$msiArg$vncArg -RemoveOld $(if ($SkipRemoveOld) { 0 } else { 1 })"
         if ($Tag) { $psArgs += " -Tag $Tag" }
         if ($ExpectedName) { $psArgs += " -ExpectedName $ExpectedName" }
         $resultPath = Join-Path $tempLocal "$id.json"
@@ -167,7 +192,7 @@ $worker = {
                 & sc.exe "\\$Addr" delete $id 2>&1 | Out-Null
                 $ErrorActionPreference = $prev
             }
-            foreach ($ext in 'ps1', 'cmd', 'json', 'msi') { Remove-Item -LiteralPath (Join-Path $tempLocal "$id.$ext") -Force -ErrorAction SilentlyContinue }
+            foreach ($ext in 'ps1', 'cmd', 'json', 'msi', 'vnc.msi', 'pw') { Remove-Item -LiteralPath (Join-Path $tempLocal "$id.$ext") -Force -ErrorAction SilentlyContinue }
         }
     }
 
@@ -206,11 +231,11 @@ $worker = {
             $result.Status = [string]$plan.status; $result.Detail = [string]$plan.detail
             return [pscustomobject]$result
         }
-        if (-not $plan.needInstall -and (@($plan.old).Count -eq 0 -or $SkipRemoveOld)) {
+        if (-not $plan.needInstall -and -not $plan.needVnc -and (@($plan.old).Count -eq 0 -or $SkipRemoveOld)) {
             $result.Status = 'OK'; $result.Detail = "ya estaba ($($plan.glpiVersion)); nada que hacer"
             return [pscustomobject]$result
         }
-        $apply = Invoke-Payload $addr $adminRoot $isLocal 'Apply' ([bool]$plan.needInstall) $expected
+        $apply = Invoke-Payload $addr $adminRoot $isLocal 'Apply' ([bool]$plan.needInstall) $expected ([bool]$plan.needVnc)
         $result.RemoteName = [string]$apply.computer
         $result.Status = [string]$apply.status; $result.Detail = [string]$apply.detail
         return [pscustomobject]$result
@@ -255,7 +280,7 @@ function Receive-Finished {
 while ($queue.Count -gt 0 -or $running.Count -gt 0) {
     while ($queue.Count -gt 0 -and $running.Count -lt $Throttle) {
         $item = $queue.Dequeue()
-        $job = Start-Job -ScriptBlock $worker -ArgumentList @($item, $MsiPath, $PayloadPath, $msiVersion, $Server, $Tag, $Credential, $executeFlag, $skipRemoveFlag, $checkOnlyFlag, $TimeoutMinutes, $ExcludeVendor, $ExcludeName)
+        $job = Start-Job -ScriptBlock $worker -ArgumentList @($item, $MsiPath, $PayloadPath, $msiVersion, $Server, $Tag, $Credential, $executeFlag, $skipRemoveFlag, $checkOnlyFlag, $TimeoutMinutes, $ExcludeVendor, $ExcludeName, $VncMsiPath, $vncPlain)
         $running[$job] = $item
     }
     Start-Sleep -Milliseconds 500

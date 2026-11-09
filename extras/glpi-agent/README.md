@@ -92,3 +92,23 @@ hace falta `LocalAccountTokenFilterPolicy=1`) y el puerto 445 abierto desde el P
 (`extras/glpi-upgrade/check_glpi.py`), y retirar del CSV los ya resueltos para la siguiente tanda.
 
 > Los CSV de escaneo y de resultados contienen nombres e IPs internas: no se versionan (`.gitignore`).
+
+## TightVNC opcional (`-VncMsiPath`)
+
+Con `-VncMsiPath <tightvnc-2.8.x-64bit.msi>` el mismo despliegue instala **TightVNC Server** en los
+puestos donde no haya ningún servidor VNC (servicio `tvnserver` u otro VNC detectado → no se toca).
+Se hace después del GLPI Agent y solo si este queda instalado; si el VNC falla el estado es
+`OK_CON_AVISOS`. Sin `-VncMsiPath` el comportamiento no cambia. Para equipos que ya tienen el
+GLPI Agent basta relanzar con `-VncMsiPath`: solo se instalará el VNC.
+
+- La contraseña (la misma de PuestoMap) se pide con `Get-Credential` al usar `-Execute` (o
+  `-VncCredential`); el usuario se ignora. Solo ASCII visible, sin comillas; TightVNC usa los 8
+  primeros caracteres. Se usa como contraseña de acceso VNC y de control.
+- Se envía al equipo en un fichero temporal que el payload borra al leerlo, no en la línea de
+  comandos del servicio; el log de `msiexec` del VNC está desactivado a propósito.
+- Si aparece «VNC instalado sin servicio» (p. ej. solo el visor de TightVNC) no se instala: revisar a mano.
+- Abre el puerto 5900 en el firewall del PC; limitar el origen (gateway/técnicos) como indica `docs/operacion.md`.
+
+```powershell
+.\extras\glpi-agent\Deploy-GlpiAgentRemote.ps1 -CsvPath .\docs\equipos.csv -MsiPath $msi -VncMsiPath C:\Users\Administrador\Downloads\tightvnc-2.8.85-gpl-setup-64bit.msi -Only AYUDEL04 -Credential $cred -Execute
+```

@@ -38,7 +38,6 @@ export default tseslint.config(
         __dirname: "readonly",
         __filename: "readonly",
         fetch: "readonly",
-        URL: "readonly",
         URLSearchParams: "readonly",
         Headers: "readonly",
         Response: "readonly",

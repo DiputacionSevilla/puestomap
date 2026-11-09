@@ -1,4 +1,0 @@
-hostname;ip;edificio_codigo;planta_nombre;despacho_codigo;pos_x;pos_y
-;10.250.9.1;AYTO;Planta baja;PB-01;0.1;0.1
-TEST-ERROR-IP;999.1;AYTO;Planta baja;PB-01;0.1;0.1
-TEST-ERROR-OFFICE;10.250.9.3;AYTO;Planta 2;PB-01;0.1;0.1

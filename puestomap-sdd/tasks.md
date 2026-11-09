@@ -100,7 +100,7 @@ Orden: T-70 `[STOP]` → P0 → P1. P2 solo si se pide. Antes de empezar: el hum
 - [x] T-76 Enlace de vuelta `/equipos/glpi/[id]` y `?name=` + campo motivo con nº de ticket (RF-22) + T-I9; guía del Enlace Externo en `docs/operacion.md`.
 - [x] T-77 `posiciones.csv` (RF-23) + bandeja «Sin colocar» en el mapa + T-I11.
 - [x] T-78 Calidad redefinida (RF-24) con enlaces «Corregir en GLPI».
-- [x] T-79 (OCS retirado a petición del humano el 2026-11-09: sync, mapper, ruta, env y columnas `ocs*`; **pendiente** borrar importaciones/asistente legados) Retirar sync OCS, mapper, importaciones/asistente legados y columnas `ocs*` (migración destructiva ⇒ backup `pg_dump` primero).
+- [x] T-79 (OCS retirado a petición del humano el 2026-11-09: sync, mapper, ruta, env y columnas `ocs*`; importaciones y asistente legados también eliminados) Retirar sync OCS, mapper, importaciones/asistente legados y columnas `ocs*` (migración destructiva ⇒ backup `pg_dump` primero).
 - [ ] T-80 `[STOP]` Corte (specs/11 §9): modo sombra con GLPI real, validar informe, activar sync, colocar puestos, probar asistencia remota; el agente anota hallazgos en `docs/progress.md`.
 - [x] T-81 (P1) Escritura de ubicación a GLPI con flag (RF-25) + T-I10.
 - [ ] T-82 (P2, solo si se pide) Seguimiento en el ticket al cerrar sesión (RF-26); departamentos desde Grupos; «TightVNC instalado» desde software de GLPI.

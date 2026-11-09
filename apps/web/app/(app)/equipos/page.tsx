@@ -1,10 +1,8 @@
-import { legacyImportEnabled } from "@/lib/legacy";
 import { Suspense } from "react";
 import { getPrisma } from "@puestomap/db";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { ComputersExplorer } from "@/components/computers/computers-explorer";
-import { CreateComputerDialog } from "@/components/computers/create-computer-dialog";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +29,6 @@ export default async function EquiposPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Equipos</h1>
-        {role !== "VIEWER" && legacyImportEnabled() ? <CreateComputerDialog /> : null}
       </div>
       <Suspense fallback={<p className="text-sm text-muted-foreground">Cargando…</p>}>
         <ComputersExplorer

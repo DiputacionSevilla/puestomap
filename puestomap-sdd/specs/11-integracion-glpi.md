@@ -37,7 +37,7 @@ OCS pasa a ser un sistema a apagar, no a integrar.
 - URL pública `soporte.mairenadelalcor.net`; IP interna del servidor GLPI `10.158.1.220`.
   **Lección ya vivida** en `glpi-incidencias-movil` (ver su `MEMORIA_PROYECTO.md`, 2026-09-02): desde la
   red interna ese dominio sale por la ruta pública y el filtro DNS de Fortinet devuelve una página HTML
-  en lugar de JSON. Por tanto `GLPI_BASE_URL` del worker debe resolverse a la IP privada
+  en lugar de JSON. Por tanto `GLPI_URL` del worker debe resolverse a la IP privada
   (`extra_hosts` en el compose, o URL interna), y el cliente debe **detectar respuestas no-JSON** y
   fallar con un error claro («GLPI devolvió HTML: revisar DNS/proxy»).
 - Volumen real (panel de GLPI, 2026-11): **144 equipos**, 191 usuarios, 5 grupos. Es un parque
@@ -123,9 +123,9 @@ model Office     { glpiLocationId Int? @unique }
 ### 5.1 Configuración (`.env`, solo **nombres** en `.env.example`)
 
 ```
-GLPI_BASE_URL=            # https://…  (sin /apirest.php). Debe resolver a la IP privada (§1)
+GLPI_URL=            # https://…  (sin /apirest.php). Debe resolver a la IP privada (§1)
 GLPI_APP_TOKEN=
-GLPI_USER_TOKEN=          # token API personal de la cuenta de servicio
+GLPI_TOKEN=          # token API personal de la cuenta de servicio
 GLPI_ALLOW_HTTP=false     # HTTP solo si true (red interna sin TLS)
 GLPI_TIMEOUT_MS=15000
 GLPI_SYNC_CRON=*/30 * * * *
@@ -135,7 +135,7 @@ GLPI_LOCATION_DEPTHS=1,2,3   # niveles bajo la raíz: edificio, planta, despacho
 GLPI_WRITEBACK_LOCATION=false     # P1
 GLPI_FOLLOWUP_ON_SESSION_END=false # P2
 GLPI_DEPARTMENT_SOURCE=none        # none | group (P2)
-INVENTORY_SOURCE=glpi              # glpi | ocs (heredado) | none
+# (INVENTORY_SOURCE eliminado: OCS fue retirado en T-79)
 ```
 
 ### 5.2 Cuenta de servicio en GLPI (la crea el humano; documentar en `docs/operacion.md`)
@@ -210,14 +210,14 @@ Los nombres de campo varían entre versiones. El agente debe pedir al humano:
 
 ```powershell
 # 1) sesión (el humano pone sus tokens; NO pegarlos en el chat ni en el repo)
-$h = @{ "App-Token"=$env:GLPI_APP_TOKEN; Authorization="user_token $env:GLPI_USER_TOKEN" }
-$s = (Invoke-RestMethod "$env:GLPI_BASE_URL/apirest.php/initSession" -Headers $h).session_token
+$h = @{ "App-Token"=$env:GLPI_APP_TOKEN; Authorization="user_token $env:GLPI_TOKEN" }
+$s = (Invoke-RestMethod "$env:GLPI_URL/apirest.php/initSession" -Headers $h).session_token
 $h2 = @{ "App-Token"=$env:GLPI_APP_TOKEN; "Session-Token"=$s }
 # 2) un equipo real y sus relaciones
-Invoke-RestMethod "$env:GLPI_BASE_URL/apirest.php/Computer/<ID>?expand_dimensions=true&with_networkports=true" -Headers $h2 | ConvertTo-Json -Depth 10 | Out-File -Encoding utf8 glpi-computer.json
-Invoke-RestMethod "$env:GLPI_BASE_URL/apirest.php/listSearchOptions/Computer" -Headers $h2 | ConvertTo-Json -Depth 6 | Out-File -Encoding utf8 glpi-searchoptions-computer.json
-Invoke-RestMethod "$env:GLPI_BASE_URL/apirest.php/Location?range=0-50" -Headers $h2 | ConvertTo-Json -Depth 4 | Out-File -Encoding utf8 glpi-locations.json
-Invoke-RestMethod "$env:GLPI_BASE_URL/apirest.php/killSession" -Headers $h2
+Invoke-RestMethod "$env:GLPI_URL/apirest.php/Computer/<ID>?expand_dimensions=true&with_networkports=true" -Headers $h2 | ConvertTo-Json -Depth 10 | Out-File -Encoding utf8 glpi-computer.json
+Invoke-RestMethod "$env:GLPI_URL/apirest.php/listSearchOptions/Computer" -Headers $h2 | ConvertTo-Json -Depth 6 | Out-File -Encoding utf8 glpi-searchoptions-computer.json
+Invoke-RestMethod "$env:GLPI_URL/apirest.php/Location?range=0-50" -Headers $h2 | ConvertTo-Json -Depth 4 | Out-File -Encoding utf8 glpi-locations.json
+Invoke-RestMethod "$env:GLPI_URL/apirest.php/killSession" -Headers $h2
 ```
 
 Anonimizar y guardar en `apps/worker/test/fixtures/glpi-*.json`. Hasta entonces, desarrollar contra
@@ -237,7 +237,7 @@ Anonimizar y guardar en `apps/worker/test/fixtures/glpi-*.json`. Hasta entonces,
 
 ### RF-21 Datos de GLPI en solo lectura, con enlace — P0
 - CA-1: en ficha y listado, cada campo con dueño GLPI se muestra con la etiqueta «GLPI» y sin
-  control de edición. Botón **«Abrir en GLPI»** (`${GLPI_BASE_URL público}/front/computer.form.php?id=<glpiId>`;
+  control de edición. Botón **«Abrir en GLPI»** (`${GLPI_URL público}/front/computer.form.php?id=<glpiId>`;
   la URL pública se configura aparte: `GLPI_PUBLIC_URL`).
 - CA-2: se retiran de la UI y de la API: edición de `assignedTo`/`phoneExt`/ubicación textual, alta
   manual de equipos, importación CSV de equipos/estructura/directorio y los pasos 1, 3 y 4 del
@@ -405,3 +405,19 @@ Sustituye el contenido actual de `app/(app)/page.tsx`, reutilizando los datos de
   `docs/referencia-visual/` para revisión humana.
 - CA-5: no se altera el visor remoto ni el mapa más allá de heredar tokens de color/tipografía
   (invariantes de `AGENTS.md` §5 intactos).
+
+## 13. Enmiendas tras la implementación (2026-11-09)
+
+- **Variables:** `GLPI_URL` (incluye `/glpi`, sin `/apirest.php`) y `GLPI_TOKEN`; además
+  `GLPI_APP_TOKEN`, `GLPI_SYNC_CRON`, `GLPI_SHADOW`, `GLPI_LOCATION_ROOT_ID`, `GLPI_STRIP_DOMAIN`,
+  `GLPI_WRITEBACK_LOCATION` y `GLPI_PUBLIC_URL` (enlaces «Abrir en GLPI», lado web).
+- **Frescura:** se mide con `last_inventory_update` (agente nativo de GLPI) → `lastInventoryAt`.
+- **Planta implícita:** un equipo situado directamente en un lugar de nivel 1 se coloca en la planta
+  «Planta única» de ese edificio. Lugares a más de 3 niveles se asimilan al de nivel 3 con aviso.
+- **Datos reales observados:** 144 equipos, 34 lugares planos, solo ~12 % de equipos con lugar y 19
+  con usuario asignado (`users_id`); 135 con `contact`. Por eso el check `sinLugar` y la bandeja
+  «Sin colocar» son centrales, y el último usuario sale de `contact` (`usuario@DOMINIO`).
+- **OCS (T-79):** retirado el sync, el cliente, el mapper, las variables `OCS_*` y las columnas
+  `ocsId`/`ocsLastInventory`; los valores `OCS` de los enums se conservan por las filas históricas.
+- **Importaciones heredadas:** eliminadas (equipos, estructura, directorio, asistente de carga
+  inicial, alta manual y `LEGACY_IMPORT_ENABLED`). Solo queda `posiciones.csv` y la carga de planos.

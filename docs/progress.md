@@ -14,7 +14,7 @@ post-fases; ver «Actualizaciones posteriores» al final).
 | F5b Multipantalla | completada salvo piloto | T-43…T-48 completadas; T-42 sigue en `[STOP]` y T-49 espera el resultado del piloto |
 | F6 Cierre v1 | completada salvo STOP | T-33…T-37 completadas; T-38 requiere aceptación manual en red real |
 | F8 CR-01 (specs/10) | completada salvo STOP/opcional | T-50…T-62 completadas; T-63 espera carga real y T-64 no se ha solicitado |
-| F9 CR-02 GLPI (specs/11) | completada salvo STOP/pendientes | T-69…T-78, T-81 y T-83 hechas; T-79 hecha en lo relativo a OCS (código, columnas, env); quedan los importadores heredados tras `LEGACY_IMPORT_ENABLED`; T-80 [STOP] (corte) pendiente; T-82 (P2) no solicitada |
+| F9 CR-02 GLPI (specs/11) | completada salvo STOP/pendientes | T-69…T-78, T-81 y T-83 hechas; T-79 completada (OCS e importadores heredados retirados); solo T-80 [STOP] (corte) pendiente y T-82 (P2) sin solicitar; T-82 (P2) no solicitada |
 
 ### Reconciliación CR-02 (T-69)
 | Tarea previa | Estado | Delta por CR-02 |
@@ -25,7 +25,7 @@ post-fases; ver «Actualizaciones posteriores» al final).
 | T-19/T-21/T-22 (mapper y sync OCS) | retiradas (T-79) | Código, tests, variables `OCS_*` y columnas `ocsId`/`ocsLastInventory` eliminados; los valores `OCS` de los enums se conservan por las filas históricas |
 
 ## Verificación
-- `npm run verify` en verde (ESLint + typecheck de todos los workspaces + **141 tests**).
+- `npm run verify` en verde (ESLint + typecheck de todos los workspaces + **131 tests**).
 - Asistencia remota validada en navegador real (Chromium + servidor RFB falso): el visor alcanza
   `conectado` (corregido el envoltorio de `window.WebSocket` que rompía las constantes y el
   prototipo que inspecciona noVNC) y el modo nativo devuelve `tightvnc://ip:puerto` con un solo

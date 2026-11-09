@@ -1,16 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { qualityChecksFor, validateDirectoryImport } from "@puestomap/shared";
+import { qualityChecksFor } from "@puestomap/shared";
 
 describe("directorio y calidad CR-01", () => {
-  it("valida, normaliza e identifica una importación idempotente", () => {
-    const rows = [{ samaccountname: "AYTO\\JLopez", displayname: "Juana López", department: "Secretaría" }];
-    const first = validateDirectoryImport(rows, []);
-    expect(first[0].action).toBe("crear");
-    expect(first[0].values?.username).toBe("jlopez");
-    expect(validateDirectoryImport(rows, [first[0].values!])[0].action).toBe("sin cambios");
-    expect(validateDirectoryImport([{ samaccountname: "", displayname: "" }], [])[0].errors).toHaveLength(2);
-  });
-
   it("calcula checks, directorio y solapes con las condiciones especificadas", () => {
     const now = new Date("2026-11-09T12:00:00Z");
     const rows = [

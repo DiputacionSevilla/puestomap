@@ -1,5 +1,5 @@
 import { getPrisma } from "@puestomap/db";
-import { deriveVncState } from "@puestomap/shared";
+import { deriveUserMatch, deriveVncState } from "@puestomap/shared";
 import { errorResponse, jsonOk, requireRole } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +17,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
         hostname: true,
         ip: true,
         lastUser: true,
+        lastUserNorm: true,
+        adUsername: true,
         assignedTo: true,
         posX: true,
         posY: true,
@@ -26,8 +28,18 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
         vncOverride: true,
         monitorCount: true,
         officeId: true,
+        departmentId: true,
       },
     });
+    const adUsernames = rows.map((r) => r.adUsername).filter((u): u is string => Boolean(u));
+    const directory = adUsernames.length
+      ? await prisma.directoryUser.findMany({
+          where: { username: { in: adUsernames } },
+          select: { username: true, displayName: true },
+        })
+      : [];
+    const directoryNames = new Map(directory.map((d) => [d.username, d.displayName]));
+
     const items = rows.map((row) => ({
       ...row,
       state: deriveVncState({
@@ -36,6 +48,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
         vncInstalled: row.vncInstalled,
         vncOverride: row.vncOverride,
       }),
+      userMatch: deriveUserMatch(row),
+      directoryName: row.adUsername ? (directoryNames.get(row.adUsername) ?? null) : null,
     }));
     return jsonOk({ items });
   } catch (err) {

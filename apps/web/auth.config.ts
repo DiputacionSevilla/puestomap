@@ -1,8 +1,12 @@
 import type { NextAuthConfig } from "next-auth";
+import { envValue } from "./lib/env-file";
 
 const SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
 
+// El bundler de proxy/middleware no expone process.env en runtime; envValue()
+// completa el valor desde el .env del proyecto (ver ADR-007).
 export const authConfig = {
+  secret: envValue("AUTH_SECRET"),
   pages: {
     signIn: "/login",
   },

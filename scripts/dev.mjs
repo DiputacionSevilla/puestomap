@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -17,18 +18,26 @@ if (existsSync(envFile)) {
   }
 }
 
-const npm = process.platform === "win32" ? "npm.cmd" : "npm";
-const targets = ["apps/web", "apps/gateway", "apps/worker"];
-const children = [];
+const require = createRequire(import.meta.url);
+const nextBin = require.resolve("next/dist/bin/next", { paths: [path.join(root, "apps", "web")] });
+const tsxBin = require.resolve("tsx/dist/cli.mjs", { paths: [root] });
 
-for (const ws of targets) {
-  const child = spawn(npm, ["run", "dev", "-w", ws], {
+const targets = [
+  { name: "web", args: [nextBin, "dev"], cwd: path.join(root, "apps", "web") },
+  { name: "gateway", args: [tsxBin, "watch", "src/index.ts"], cwd: path.join(root, "apps", "gateway") },
+  { name: "worker", args: [tsxBin, "watch", "src/index.ts"], cwd: path.join(root, "apps", "worker") },
+];
+
+const children = [];
+for (const target of targets) {
+  const child = spawn(process.execPath, target.args, {
     stdio: "inherit",
+    cwd: target.cwd,
     shell: false,
   });
   child.on("exit", (code) => {
     if (code !== 0 && code !== null) {
-      console.error(`[dev] ${ws} terminó con código ${code}`);
+      console.error(`[dev] ${target.name} terminó con código ${code}`);
     }
   });
   children.push(child);

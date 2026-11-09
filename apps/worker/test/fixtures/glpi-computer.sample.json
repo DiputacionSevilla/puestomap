@@ -1,0 +1,148 @@
+{
+  "id": 1,
+  "entities_id": 0,
+  "name": "PC-EJEMPLO-01",
+  "serial": "SN-EJEMPLO-0001",
+  "otherserial": "MA99001",
+  "contact": "usuario1@MAIRENADELALCOR",
+  "contact_num": null,
+  "users_id_tech": 0,
+  "groups_id_tech": 0,
+  "comment": null,
+  "date_mod": "2025-11-13 08:22:01",
+  "autoupdatesystems_id": 0,
+  "locations_id": 22,
+  "networks_id": 0,
+  "computermodels_id": 1,
+  "computertypes_id": 1,
+  "is_template": 0,
+  "template_name": null,
+  "manufacturers_id": 9,
+  "is_deleted": 0,
+  "is_dynamic": 1,
+  "users_id": 305,
+  "groups_id": 3,
+  "states_id": 6,
+  "ticket_tco": "0.0000",
+  "uuid": "00000000-0000-4000-8000-000000000001",
+  "date_creation": "2023-05-30 14:31:06",
+  "is_recursive": 0,
+  "last_inventory_update": null,
+  "_devices": {
+    "Item_DeviceProcessor": {
+      "521": {
+        "id": 521,
+        "deviceprocessors_id": 1,
+        "frequency": 3400,
+        "is_dynamic": 1,
+        "nbcores": 4,
+        "nbthreads": 4,
+        "entities_id": 0,
+        "is_recursive": 0
+      }
+    },
+    "Item_DeviceMemory": {
+      "1": {
+        "id": 1,
+        "devicememories_id": 1,
+        "size": 8192,
+        "is_dynamic": 1,
+        "entities_id": 0,
+        "is_recursive": 0
+      }
+    },
+    "Item_DeviceHardDrive": {
+      "448": {
+        "id": 448,
+        "deviceharddrives_id": 1,
+        "capacity": 256060,
+        "is_dynamic": 1,
+        "entities_id": 0,
+        "is_recursive": 0
+      }
+    }
+  },
+  "_networkports": {
+    "NetworkPortEthernet": [
+      {
+        "netport_id": 385,
+        "entities_id": 0,
+        "is_recursive": 0,
+        "logical_number": 1,
+        "name": "Realtek PCIe GBE Family Controller",
+        "mac": "02:00:00:00:00:01",
+        "comment": null,
+        "is_dynamic": 1,
+        "id": 331,
+        "networkports_id": 385,
+        "items_devicenetworkcards_id": 238,
+        "type": "",
+        "speed": 1000,
+        "date_mod": "2025-05-15 07:57:47",
+        "date_creation": "2024-06-23 11:51:52",
+        "NetworkName": {
+          "id": 354,
+          "name": null,
+          "fqdns_id": 0,
+          "FQDN": {
+            "id": 0,
+            "name": null,
+            "fqdn": null
+          },
+          "IPAddress": [
+            {
+              "id": "2214",
+              "name": "10.158.99.10",
+              "IPNetwork": [
+                {
+                  "id": 1,
+                  "completename": "10.158.0.0/255.255.254.0 - 10.158.1.253",
+                  "name": "10.158.0.0/255.255.254.0 - 10.158.1.253",
+                  "address": "10.158.0.0",
+                  "netmask": "255.255.254.0",
+                  "gateway": "10.158.1.253",
+                  "ipnetworks_id": 0,
+                  "comment": null
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "netport_id": 631,
+        "entities_id": 0,
+        "is_recursive": 0,
+        "logical_number": 0,
+        "name": "PANGP Virtual Ethernet Adapter Secure",
+        "mac": "02:00:00:00:00:02",
+        "comment": null,
+        "is_dynamic": 1,
+        "id": 540,
+        "networkports_id": 631,
+        "items_devicenetworkcards_id": 0,
+        "type": "",
+        "speed": 2000,
+        "date_mod": "2026-10-30 13:15:00",
+        "date_creation": "2026-10-30 13:15:00",
+        "NetworkName": {
+          "id": 600,
+          "name": null,
+          "fqdns_id": 0,
+          "FQDN": {
+            "id": 0,
+            "name": null,
+            "fqdn": null
+          },
+          "IPAddress": [
+            {
+              "id": "3332",
+              "name": "172.16.10.2",
+              "IPNetwork": []
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+[
+  {
+    "id": 305,
+    "name": "usuario1",
+    "realname": "Ejemplo Uno",
+    "firstname": "Ana",
+    "is_active": 1,
+    "is_deleted": 0,
+    "authtype": 3,
+    "phone": "600000001"
+  },
+  {
+    "id": 306,
+    "name": "usuario2",
+    "realname": "Ejemplo Dos",
+    "firstname": "Luis",
+    "is_active": 1,
+    "is_deleted": 0,
+    "authtype": 3,
+    "phone": null
+  },
+  {
+    "id": 2,
+    "name": "glpi",
+    "realname": null,
+    "firstname": null,
+    "is_active": 1,
+    "is_deleted": 0,
+    "authtype": 1,
+    "phone": null
+  }
+]

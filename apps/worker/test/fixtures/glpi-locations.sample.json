@@ -1,0 +1,240 @@
+[
+  {
+    "id": 1,
+    "name": "AYUNTAMIENTO",
+    "completename": "AYUNTAMIENTO",
+    "level": 1,
+    "locations_id": 0
+  },
+  {
+    "id": 2,
+    "name": "Villa Conocimiento y las Artes",
+    "completename": "AYUNTAMIENTO > Villa Conocimiento y las Artes",
+    "level": 2,
+    "locations_id": 1
+  },
+  {
+    "id": 3,
+    "name": "Sala Fabiola",
+    "completename": "AYUNTAMIENTO > Villa Conocimiento y las Artes > Sala Fabiola",
+    "level": 3,
+    "locations_id": 2
+  },
+  {
+    "id": 4,
+    "name": "APRODI",
+    "completename": "APRODI",
+    "level": 1,
+    "locations_id": 0
+  },
+  {
+    "id": 5,
+    "name": "Piscina Cubierta",
+    "completename": "AYUNTAMIENTO > Piscina Cubierta",
+    "level": 2,
+    "locations_id": 1
+  },
+  {
+    "id": 6,
+    "name": "Radio",
+    "completename": "AYUNTAMIENTO > Villa Conocimiento y las Artes > Radio",
+    "level": 3,
+    "locations_id": 2
+  },
+  {
+    "id": 7,
+    "name": "Centro de Empresa",
+    "completename": "Centro de Empresa",
+    "level": 1,
+    "locations_id": 0
+  },
+  {
+    "id": 8,
+    "name": "Andalucia Orienta",
+    "completename": "Andalucia Orienta",
+    "level": 1,
+    "locations_id": 0
+  },
+  {
+    "id": 9,
+    "name": "Polideportivo",
+    "completename": "AYUNTAMIENTO > Polideportivo",
+    "level": 2,
+    "locations_id": 1
+  },
+  {
+    "id": 10,
+    "name": "Recursos Humanos",
+    "completename": "AYUNTAMIENTO > Recursos Humanos",
+    "level": 2,
+    "locations_id": 1
+  },
+  {
+    "id": 11,
+    "name": "Salon de Plenos",
+    "completename": "AYUNTAMIENTO > Salon de Plenos",
+    "level": 2,
+    "locations_id": 1
+  },
+  {
+    "id": 12,
+    "name": "Alcaldía",
+    "completename": "AYUNTAMIENTO > Alcaldía",
+    "level": 2,
+    "locations_id": 1
+  },
+  {
+    "id": 13,
+    "name": "Oficina APAL",
+    "completename": "AYUNTAMIENTO > Oficina APAL",
+    "level": 2,
+    "locations_id": 1
+  },
+  {
+    "id": 14,
+    "name": "GMU",
+    "completename": "GMU",
+    "level": 1,
+    "locations_id": 0
+  },
+  {
+    "id": 15,
+    "name": "Edificio Obras y Servicios",
+    "completename": "GMU > Edificio Obras y Servicios",
+    "level": 2,
+    "locations_id": 14
+  },
+  {
+    "id": 16,
+    "name": "Servicios Sociales",
+    "completename": "Servicios Sociales",
+    "level": 1,
+    "locations_id": 0
+  },
+  {
+    "id": 17,
+    "name": "Castillo",
+    "completename": "Castillo",
+    "level": 1,
+    "locations_id": 0
+  },
+  {
+    "id": 18,
+    "name": "Ayuntamiento CPD",
+    "completename": "AYUNTAMIENTO > Ayuntamiento CPD",
+    "level": 2,
+    "locations_id": 1
+  },
+  {
+    "id": 19,
+    "name": "CTA",
+    "completename": "GMU > CTA",
+    "level": 2,
+    "locations_id": 14
+  },
+  {
+    "id": 20,
+    "name": "Secretaria",
+    "completename": "AYUNTAMIENTO > Secretaria",
+    "level": 2,
+    "locations_id": 1
+  },
+  {
+    "id": 21,
+    "name": "Hacienda",
+    "completename": "AYUNTAMIENTO > Hacienda",
+    "level": 2,
+    "locations_id": 1
+  },
+  {
+    "id": 22,
+    "name": "Informática",
+    "completename": "AYUNTAMIENTO > Informática",
+    "level": 2,
+    "locations_id": 1
+  },
+  {
+    "id": 24,
+    "name": "Oficina Tecnica",
+    "completename": "GMU > Oficina Tecnica",
+    "level": 2,
+    "locations_id": 14
+  },
+  {
+    "id": 25,
+    "name": "Gimnasio",
+    "completename": "AYUNTAMIENTO > Polideportivo > Gimnasio",
+    "level": 3,
+    "locations_id": 9
+  },
+  {
+    "id": 26,
+    "name": "OAC",
+    "completename": "OAC",
+    "level": 1,
+    "locations_id": 0
+  },
+  {
+    "id": 27,
+    "name": "Tesorería",
+    "completename": "AYUNTAMIENTO > Tesorería",
+    "level": 2,
+    "locations_id": 1
+  },
+  {
+    "id": 28,
+    "name": "Policía",
+    "completename": "Policía",
+    "level": 1,
+    "locations_id": 0
+  },
+  {
+    "id": 29,
+    "name": "Cultura",
+    "completename": "Cultura",
+    "level": 1,
+    "locations_id": 0
+  },
+  {
+    "id": 30,
+    "name": "Intervención",
+    "completename": "Intervención",
+    "level": 1,
+    "locations_id": 0
+  },
+  {
+    "id": 31,
+    "name": "Impúlsame",
+    "completename": "Impúlsame",
+    "level": 1,
+    "locations_id": 0
+  },
+  {
+    "id": 32,
+    "name": "Deportes",
+    "completename": "Deportes",
+    "level": 1,
+    "locations_id": 0
+  },
+  {
+    "id": 33,
+    "name": "Biblioteca",
+    "completename": "Biblioteca",
+    "level": 1,
+    "locations_id": 0
+  },
+  {
+    "id": 34,
+    "name": "OAL",
+    "completename": "OAL",
+    "level": 1,
+    "locations_id": 0
+  },
+  {
+    "id": 35,
+    "name": "SERVICIOS SOCIALES",
+    "completename": "AYUNTAMIENTO > SERVICIOS SOCIALES",
+    "level": 2,
+    "locations_id": 1
+  }
+]

@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "itemtype": "Computer",
+    "operatingsystems_id": "Windows",
+    "operatingsystemversions_id": "2009",
+    "operatingsystemservicepacks_id": 0,
+    "operatingsystemarchitectures_id": "64-bit",
+    "operatingsystemkernelversions_id": "10.0.19045",
+    "operatingsystemeditions_id": "Pro",
+    "date_mod": "2024-06-23 11:51:52",
+    "date_creation": "2023-05-30 14:31:06",
+    "is_deleted": 0,
+    "is_dynamic": 1,
+    "entities_id": "Entidad raíz",
+    "is_recursive": 0
+  }
+]

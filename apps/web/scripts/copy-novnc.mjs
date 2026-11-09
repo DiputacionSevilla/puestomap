@@ -35,11 +35,15 @@ if (!existsSync(path.join(dest, "core", "rfb.js"))) {
 }
 console.log(`[copy-novnc] noVNC copiado a ${dest}`);
 
-const extrasSrc = path.resolve(here, "..", "..", "puestomap-sdd", "extras", "tightvnc-protocol");
+const extrasSrc = path.resolve(here, "..", "..", "..", "puestomap-sdd", "extras");
 const extrasDest = path.resolve(here, "..", "public", "extras");
-if (existsSync(extrasSrc)) {
+if (existsSync(path.join(extrasSrc, "tightvnc-protocol"))) {
   rmSync(extrasDest, { recursive: true, force: true });
   mkdirSync(extrasDest, { recursive: true });
-  cpSync(extrasSrc, extrasDest, { recursive: true });
+  cpSync(path.join(extrasSrc, "tightvnc-protocol"), extrasDest, { recursive: true });
+  const zip = path.join(extrasSrc, "tightvnc-protocol.zip");
+  if (existsSync(zip)) {
+    cpSync(zip, path.join(extrasDest, "tightvnc-protocol.zip"));
+  }
   console.log(`[copy-novnc] extras de tightvnc copiados a ${extrasDest}`);
 }

@@ -20,29 +20,51 @@ export default function AyudaTightVncPage() {
             <li>
               Descarga e instala el lanzador del protocolo <code>tightvnc://</code> en tu PC (no
               requiere administrador):
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="mt-2 flex flex-wrap items-center gap-2">
                 <a
-                  className="inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium hover:bg-accent"
-                  href="/extras/instalar.ps1"
+                  className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                  href="/extras/tightvnc-protocol.zip"
                   download
                 >
-                  instalar.ps1
+                  Descargar todo (ZIP)
                 </a>
-                <a
-                  className="inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium hover:bg-accent"
-                  href="/extras/desinstalar.ps1"
-                  download
-                >
-                  desinstalar.ps1
-                </a>
-                <a
-                  className="inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium hover:bg-accent"
-                  href="/extras/tightvnc-launch.ps1"
-                  download
-                >
-                  tightvnc-launch.ps1
-                </a>
+                <span className="text-xs text-muted-foreground">
+                  El ZIP incluye los 3 scripts. Descomprímelo en una carpeta y continúa con el paso 2.
+                </span>
               </div>
+              <details className="mt-2">
+                <summary className="cursor-pointer text-xs text-muted-foreground underline">
+                  Descargar los scripts por separado
+                </summary>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <a
+                    className="inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium hover:bg-accent"
+                    href="/extras/instalar.ps1"
+                    download
+                  >
+                    instalar.ps1
+                  </a>
+                  <a
+                    className="inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium hover:bg-accent"
+                    href="/extras/desinstalar.ps1"
+                    download
+                  >
+                    desinstalar.ps1
+                  </a>
+                  <a
+                    className="inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium hover:bg-accent"
+                    href="/extras/tightvnc-launch.ps1"
+                    download
+                  >
+                    tightvnc-launch.ps1
+                  </a>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Ojo: Chrome y Edge bloquean la descarga directa de ficheros <code>.ps1</code> por
+                  seguridad. Si lo descargas por separado, usa «Conservar» / «Guardar archivo» en el
+                  aviso del navegador (o prefiere el ZIP).
+                </p>
+              </details>
             </li>
             <li>
               Ejecuta <code>instalar.ps1</code> (clic derecho → «Ejecutar con PowerShell»). Registra

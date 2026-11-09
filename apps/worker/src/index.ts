@@ -4,11 +4,13 @@ import { discoverScreenCandidates } from "./screens.js";
 import http from "node:http";
 import { cleanupStaleSessions } from "./cleanup.js";
 import { runProbe } from "./probe.js";
+import { runGlpiSync } from "./sync/glpi.js";
 import { runOcsSync } from "./sync/ocs.js";
 
 export const WORKER_VERSION = "1.0.0";
 
 let ocsRunning = false;
+let glpiRunning = false;
 let probeRunning = false;
 
 function log(event: string, data: Record<string, unknown> = {}) {
@@ -35,6 +37,19 @@ async function guardedOcsSync() {
   return true;
 }
 
+async function guardedGlpiSync() {
+  if (glpiRunning) return false;
+  glpiRunning = true;
+  try {
+    await runGlpiSync();
+  } catch (error) {
+    console.error(JSON.stringify({ level: "error", event: "glpi.sync.failed", error: error instanceof Error ? error.message : String(error) }));
+  } finally {
+    glpiRunning = false;
+  }
+  return true;
+}
+
 async function guardedProbe() {
   if (probeRunning) return;
   probeRunning = true;
@@ -52,6 +67,22 @@ export function startWorker() {
   const interval = Math.max(1, Math.min(59, Number(process.env.PROBE_INTERVAL_MIN ?? 5) || 5));
   cron.schedule(`*/${interval} * * * *`, () => void guardedProbe());
   cron.schedule(process.env.OCS_SYNC_CRON ?? "0 */2 * * *", () => void guardedOcsSync());
+  if (process.env.GLPI_URL && process.env.GLPI_TOKEN) {
+    cron.schedule(process.env.GLPI_SYNC_CRON ?? "*/30 * * * *", () => void guardedGlpiSync());
+    cron.schedule("*/30 * * * * *", () => void (async () => {
+      const [requested, handled] = await Promise.all([
+        prisma.setting.findUnique({ where: { key: "glpi.requestedAt" } }),
+        prisma.setting.findUnique({ where: { key: "glpi.handledRequestAt" } }),
+      ]);
+      if (typeof requested?.value !== "string" || requested.value === handled?.value) return;
+      if (!(await guardedGlpiSync())) return;
+      await prisma.setting.upsert({
+        where: { key: "glpi.handledRequestAt" },
+        update: { value: requested.value },
+        create: { key: "glpi.handledRequestAt", value: requested.value },
+      });
+    })().catch((error) => console.error(JSON.stringify({ level: "error", event: "glpi.request.failed", error: String(error) }))));
+  }
   cron.schedule("* * * * *", () => void cleanupStaleSessions().catch((error) => {
     console.error(JSON.stringify({ level: "error", event: "sessions.cleanup.failed", error: String(error) }));
   }));

@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
-    await requireRole();
+    const user = await requireRole();
     const { id } = await ctx.params;
     const prisma = getPrisma();
     const rows = await prisma.computer.findMany({
@@ -27,12 +27,17 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
         vncInstalled: true,
         vncOverride: true,
         monitorCount: true,
+        screens: {
+          where: { enabled: true },
+          orderBy: { index: "asc" },
+          select: { index: true, label: true, port: true, enabled: true },
+        },
         officeId: true,
         departmentId: true,
       },
     });
     const adUsernames = rows.map((r) => r.adUsername).filter((u): u is string => Boolean(u));
-    const directory = adUsernames.length
+    const directory = user.role !== "VIEWER" && adUsernames.length
       ? await prisma.directoryUser.findMany({
           where: { username: { in: adUsernames } },
           select: { username: true, displayName: true },

@@ -67,6 +67,7 @@ export default async function MapaPage({
     prisma.computer.findMany({
       where: { floorId: floor.id, archived: false },
       orderBy: { hostname: "asc" },
+      include: { screens: { where: { enabled: true }, orderBy: { index: "asc" } } },
     }),
     prisma.computer.findMany({
       where: {
@@ -75,6 +76,7 @@ export default async function MapaPage({
       },
       orderBy: { hostname: "asc" },
       take: 300,
+      include: { screens: { where: { enabled: true }, orderBy: { index: "asc" } } },
     }),
     prisma.department.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.office.findMany({
@@ -86,7 +88,7 @@ export default async function MapaPage({
   const adUsernames = [...rows, ...unplacedRows]
     .map((r) => r.adUsername)
     .filter((u): u is string => Boolean(u));
-  const directory = adUsernames.length
+  const directory = session.user.role !== "VIEWER" && adUsernames.length
     ? await prisma.directoryUser.findMany({
         where: { username: { in: Array.from(new Set(adUsernames)) } },
         select: { username: true, displayName: true },
@@ -113,6 +115,7 @@ export default async function MapaPage({
     userMatch: deriveUserMatch(row),
     directoryName: row.adUsername ? (directoryNames.get(row.adUsername) ?? null) : null,
     monitorCount: row.monitorCount,
+    screens: row.screens,
     officeId: row.officeId,
     departmentId: row.departmentId,
   });

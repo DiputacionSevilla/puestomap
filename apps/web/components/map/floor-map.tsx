@@ -25,6 +25,7 @@ export type MapComputer = {
   userMatch: string;
   directoryName: string | null;
   monitorCount: number | null;
+  screens: { index: number; label: string; port: number; enabled: boolean }[];
   officeId: string | null;
   departmentId: string | null;
 };
@@ -65,12 +66,12 @@ const STATE_COLORS: Record<VncUiState, { fill: string; border: string; shape: st
 
 type LabelMode = "hostname" | "assignedTo" | "adUsername";
 
-function markerHtml(state: VncUiState, label: string, dimmed: boolean): string {
+function markerHtml(state: VncUiState, label: string, dimmed: boolean, multi: boolean): string {
   const colors = STATE_COLORS[state];
   const labelHtml = label
     ? `<span class="pm-marker-label">${label}</span>`
     : "";
-  return `<div class="pm-marker ${dimmed ? "pm-marker-dim" : ""}" data-shape="${colors.shape}" style="--pm-fill:${colors.fill};--pm-border:${colors.border}">${labelHtml}</div>`;
+  return `<div class="pm-marker ${dimmed ? "pm-marker-dim" : ""}" data-shape="${colors.shape}" style="--pm-fill:${colors.fill};--pm-border:${colors.border}">${multi ? '<span class="pm-marker-multi">▭▭</span>' : ""}${labelHtml}</div>`;
 }
 
 export function FloorMap({
@@ -170,7 +171,6 @@ export function FloorMap({
       map.remove();
       mapRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [planUrl, planWidth, planHeight]);
 
   useEffect(() => {
@@ -225,6 +225,7 @@ export function FloorMap({
           computer.state,
           showLabels ? labelFor(computer) : "",
           dimmed(computer),
+          computer.screens.length >= 2 || (computer.monitorCount ?? 0) > 1,
         ),
         iconSize: [28, 28],
         iconAnchor: [14, 14],
@@ -259,7 +260,7 @@ export function FloorMap({
         );
       }
     }
-  }, [computers, zoom, labelMode, dimmed, canEdit, editMode, planWidth, planHeight]);
+  }, [computers, zoom, labelMode, labelFor, dimmed, canEdit, editMode, planWidth, planHeight]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -517,6 +518,8 @@ export function FloorMap({
                   hostname: selected.hostname,
                   ip: selected.ip,
                   placed: true,
+                  screens: selected.screens,
+                  multiState: selected.screens.length >= 2 ? "MULTI_OK" : (selected.monitorCount ?? 0) > 1 ? "MULTI_PENDING" : "SINGLE",
                 }}
                 compact
               />

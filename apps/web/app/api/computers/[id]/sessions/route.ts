@@ -133,9 +133,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     }
 
     const token = await signGatewayToken({ sid: session.id }, gatewayJwtSecret(), 60);
+    // En producción Nginx reenvía /vnc-ws al gateway; en desarrollo, GATEWAY_PUBLIC_URL
+    // apunta directamente a ws://localhost:8081.
+    const gatewayBase = (envValue("GATEWAY_PUBLIC_URL") ?? "").replace(/\/$/, "");
     return jsonOk({
       sessionId: session.id,
-      wsUrl: `/vnc-ws?token=${encodeURIComponent(token)}`,
+      wsUrl: `${gatewayBase}/vnc-ws?token=${encodeURIComponent(token)}`,
       password: vncPasswordFor(passwordEnc),
       screenLabel,
       targetPort,

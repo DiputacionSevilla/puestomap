@@ -20,7 +20,7 @@ if (existsSync(envFile)) {
 
 const require = createRequire(import.meta.url);
 const nextBin = require.resolve("next/dist/bin/next", { paths: [path.join(root, "apps", "web")] });
-const tsxBin = require.resolve("tsx/dist/cli.mjs", { paths: [root] });
+const tsxBin = require.resolve("tsx/cli", { paths: [root] });
 
 const targets = [
   { name: "web", args: [nextBin, "dev"], cwd: path.join(root, "apps", "web") },

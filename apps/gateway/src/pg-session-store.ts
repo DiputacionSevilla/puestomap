@@ -8,12 +8,16 @@ export class PgSessionStore implements SessionStore {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
+      // OJO: Prisma guarda DateTime como wall-time UTC en columnas "timestamp";
+      // hay que comparar/escribir en UTC explícito (la sesión Postgres puede tener otra TZ).
       const updated = await client.query(
         `UPDATE "RemoteSession"
-            SET status = 'ACTIVE', "startedAt" = now(), "clientIp" = $2
+            SET status = 'ACTIVE',
+                "startedAt" = now() AT TIME ZONE 'UTC',
+                "clientIp" = $2
           WHERE id = $1
             AND status = 'PENDING'
-            AND "createdAt" > now() - interval '60 seconds'
+            AND "createdAt" > (now() AT TIME ZONE 'UTC') - interval '60 seconds'
           RETURNING id`,
         [sid, meta.clientIp],
       );
@@ -47,7 +51,7 @@ export class PgSessionStore implements SessionStore {
     await this.pool.query(
       `UPDATE "RemoteSession"
           SET status = $2,
-              "endedAt" = now(),
+              "endedAt" = now() AT TIME ZONE 'UTC',
               "bytesIn" = $3,
               "bytesOut" = $4,
               "endReason" = $5,

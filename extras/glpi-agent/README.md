@@ -76,7 +76,7 @@ Parámetros útiles: `-Credential (Get-Credential)` (cuenta con administrador lo
 `-TimeoutMinutes`. Es idempotente: repetirlo no reinstala donde ya está la versión del MSI.
 
 **Resultados:** `deploy-results-<fecha>.csv` con estados `OK`, `OK_CON_AVISOS`, `SIMULACION`,
-`NO_ALCANZABLE`, `NOMBRE_DISTINTO`, `OMITIDO`, `ERROR_INSTALACION`, `ERROR_VERIFICACION`, `ERROR`.
+`NO_ALCANZABLE`, `SIN_ACCESO_SMB` (la cuenta no es administradora en el equipo), `ERROR_DCOM` (SMB correcto pero WMI/DCOM bloqueado), `NOMBRE_DISTINTO`, `OMITIDO`, `ERROR_INSTALACION`, `ERROR_VERIFICACION`, `ERROR`.
 En cada equipo queda el log del MSI en `C:\Windows\Temp\glpi-agent-install.log`.
 
 **Requisitos en los destinos:** cuenta de administrador local (p. ej. de dominio; con cuentas locales

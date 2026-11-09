@@ -164,10 +164,33 @@ $worker = {
         if ($Item.Os -and $Item.Os -notmatch 'windows|win\d|microsoft') { $result.Status = 'OMITIDO'; $result.Detail = "Sistema no Windows ($($Item.Os))"; return [pscustomobject]$result }
         if (-not (Test-Port $addr 445) -or -not (Test-Port $addr 135)) { $result.Status = 'NO_ALCANZABLE'; $result.Detail = 'Puertos 135/445 cerrados o sin respuesta'; return [pscustomobject]$result }
 
+        # Este mismo PC: Windows rechaza credenciales explícitas contra uno mismo; se usa la sesión actual.
+        $localIps = @([System.Net.Dns]::GetHostAddresses($env:COMPUTERNAME) | ForEach-Object { $_.IPAddressToString }) + @('127.0.0.1', 'localhost', $env:COMPUTERNAME)
+        $isLocal = $localIps -contains $addr
+        $useCred = $Credential -and -not $isLocal
+
+        # Comprobación previa por SMB (solo lectura): ¿la cuenta es administradora en el destino?
+        $driveName = 'GD' + ([guid]::NewGuid().ToString('N').Substring(0, 6))
+        if (-not $isLocal) {
+            $dp = @{ Name = $driveName; PSProvider = 'FileSystem'; Root = "\\$addr\ADMIN`$"; ErrorAction = 'Stop' }
+            if ($useCred) { $dp.Credential = $Credential }
+            try { $drive = New-PSDrive @dp }
+            catch {
+                $result.Status = 'SIN_ACCESO_SMB'
+                $result.Detail = "No se puede abrir ADMIN$ con la cuenta usada: $($_.Exception.Message.Trim()). La cuenta debe ser administradora local del equipo (con cuentas locales, LocalAccountTokenFilterPolicy=1)."
+                return [pscustomobject]$result
+            }
+        }
+
         $opt = New-CimSessionOption -Protocol Dcom
         $params = @{ ComputerName = $addr; SessionOption = $opt; OperationTimeoutSec = 60; ErrorAction = 'Stop' }
-        if ($Credential) { $params.Credential = $Credential }
-        $cim = New-CimSession @params
+        if ($useCred) { $params.Credential = $Credential }
+        try { $cim = New-CimSession @params; $null = Get-CimInstance -CimSession $cim -ClassName Win32_ComputerSystem }
+        catch {
+            $result.Status = 'ERROR_DCOM'
+            $result.Detail = "SMB correcto pero falla CIM/DCOM: $($_.Exception.Message.Trim()). Revisar la regla de firewall de WMI (DCOM-In) y los permisos DCOM."
+            return [pscustomobject]$result
+        }
         $cs = Get-CimInstance -CimSession $cim -ClassName Win32_ComputerSystem
         $os = Get-CimInstance -CimSession $cim -ClassName Win32_OperatingSystem
         $result.RemoteName = $cs.Name
@@ -193,12 +216,8 @@ $worker = {
             return [pscustomobject]$result
         }
 
-        # --- Acceso SMB a ADMIN$ ---
-        $driveName = 'GD' + ([guid]::NewGuid().ToString('N').Substring(0, 6))
-        $dp = @{ Name = $driveName; PSProvider = 'FileSystem'; Root = "\\$addr\ADMIN`$"; ErrorAction = 'Stop' }
-        if ($Credential) { $dp.Credential = $Credential }
-        $drive = New-PSDrive @dp
-        $adminRoot = "${driveName}:\"
+        # --- Acceso SMB a ADMIN$ (ya abierto en la comprobación previa) ---
+        if ($isLocal) { $adminRoot = "$env:SystemRoot\" } else { $adminRoot = "${driveName}:\" }
         $stamp = Get-Date -Format 'yyyyMMddHHmmss'
 
         if ($needInstall) {

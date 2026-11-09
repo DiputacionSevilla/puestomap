@@ -94,6 +94,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     if (input.credentialId !== undefined) data.credentialId = input.credentialId;
     if (input.vncOverride !== undefined) data.vncOverride = input.vncOverride;
     if (input.externalRef !== undefined) data.externalRef = input.externalRef;
+    if (input.adUsername !== undefined) data.adUsername = input.adUsername;
 
     const updated = await prisma.computer.update({
       where: { id },

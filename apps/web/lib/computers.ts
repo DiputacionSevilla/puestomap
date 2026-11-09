@@ -1,6 +1,6 @@
 import type { Prisma } from "@puestomap/db";
 import type { ComputersListQuery, VncUiState } from "@puestomap/shared";
-import { deriveVncState, type MultiState, type ScreenLike } from "@puestomap/shared";
+import { deriveUserMatch, deriveVncState, type MultiState, type ScreenLike } from "@puestomap/shared";
 
 export const STALE_OCS_DAYS = 30;
 
@@ -9,6 +9,7 @@ const SORTABLE: Record<string, string> = {
   ip: "ip",
   lastUser: "lastUser",
   assignedTo: "assignedTo",
+  adUsername: "adUsername",
   os: "os",
   lastProbeAt: "lastProbeAt",
   updatedAt: "updatedAt",
@@ -67,7 +68,7 @@ export function stateWhere(state: VncUiState): Prisma.ComputerWhereInput {
   }
 }
 
-export function buildComputersWhere(query: ComputersListQuery): Prisma.ComputerWhereInput {
+export function buildComputersWhere(query: ComputersListQuery, directoryMatches: string[] = []): Prisma.ComputerWhereInput {
   const and: Prisma.ComputerWhereInput[] = [];
 
   and.push({ archived: query.archived === true ? undefined : false });
@@ -80,6 +81,8 @@ export function buildComputersWhere(query: ComputersListQuery): Prisma.ComputerW
         { ip: { contains: q, mode: "insensitive" } },
         { lastUser: { contains: q, mode: "insensitive" } },
         { assignedTo: { contains: q, mode: "insensitive" } },
+        { adUsername: { contains: q, mode: "insensitive" } },
+        ...(directoryMatches.length ? [{ adUsername: { in: directoryMatches } }] : []),
         { serial: { contains: q, mode: "insensitive" } },
         { notes: { contains: q, mode: "insensitive" } },
       ],
@@ -162,6 +165,9 @@ export function toListItem(row: ComputerListRow) {
     ip: row.ip,
     lastUser: row.lastUser,
     assignedTo: row.assignedTo,
+    adUsername: row.adUsername,
+    lastUserNorm: row.lastUserNorm,
+    userMatch: deriveUserMatch(row),
     os: row.osVersion ?? row.os,
     building: row.floor?.building.name ?? null,
     buildingId: row.floor?.building.id ?? null,
@@ -178,6 +184,7 @@ export function toListItem(row: ComputerListRow) {
     }),
     multiState: deriveMultiStateFrom(row),
     monitorCount: row.monitorCount,
+    screens: row.screens,
     archived: row.archived,
   };
 }

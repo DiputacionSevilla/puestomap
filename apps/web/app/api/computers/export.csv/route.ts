@@ -2,12 +2,13 @@ import { getPrisma } from "@puestomap/db";
 import { computersListQuerySchema, computersToCsv, type ComputerCsvRow } from "@puestomap/shared";
 import { errorResponse, requireRole } from "@/lib/api";
 import { buildComputersWhere, buildOrderBy, computerListInclude } from "@/lib/computers";
+import { audit, clientIp } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
-    await requireRole();
+    const user = await requireRole();
     const url = new URL(req.url);
     const query = computersListQuerySchema.parse(
       Object.fromEntries(url.searchParams.entries()),
@@ -34,8 +35,10 @@ export async function GET(req: Request) {
       credencial: "",
       notas: row.notes ?? "",
       asset_tag: row.assetTag ?? "",
+      usuario_dominio: row.adUsername ?? "",
     }));
 
+    await audit({ userId: user.id, action: "export.computers", entity: "Computer", data: { count: rows.length }, ip: clientIp(req) });
     return new Response(computersToCsv(csvRows), {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",

@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { getPrisma } from "@puestomap/db";
-import { deriveVncState } from "@puestomap/shared";
+import { deriveMultiState, deriveVncState, normalizeAdUser } from "@puestomap/shared";
 import { auth } from "@/auth";
 import { StateBadge } from "@/components/state-badge";
 import { ComputerDetail } from "@/components/computers/computer-detail";
@@ -32,7 +32,9 @@ export default async function ComputerPage({
   });
   if (!computer) notFound();
 
-  const [sessions, audits, structure] = await Promise.all([
+  const role = session.user.role;
+  const normalizedLastUser = normalizeAdUser(computer.lastUserNorm ?? computer.lastUser);
+  const [sessions, audits, structure, directoryUsers] = await Promise.all([
     prisma.remoteSession.findMany({
       where: { computerId: id },
       orderBy: { createdAt: "desc" },
@@ -53,6 +55,12 @@ export default async function ComputerPage({
       prisma.department.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, code: true } }),
       prisma.vncCredential.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     ]),
+    role === "VIEWER"
+      ? Promise.resolve([])
+      : prisma.directoryUser.findMany({
+          where: { username: { in: [computer.adUsername, normalizedLastUser].filter((value): value is string => Boolean(value)) } },
+          select: { username: true, displayName: true, department: true, phone: true },
+        }),
   ]);
 
   const state = deriveVncState({
@@ -61,8 +69,6 @@ export default async function ComputerPage({
     vncInstalled: computer.vncInstalled,
     vncOverride: computer.vncOverride,
   });
-
-  const role = session.user.role;
 
   return (
     <div className="space-y-4">
@@ -96,6 +102,8 @@ export default async function ComputerPage({
               ip: computer.ip,
               vncPort: computer.vncPort,
               placed: Boolean(computer.floorId),
+              screens: computer.screens,
+              multiState: deriveMultiState({ monitorCount: computer.monitorCount, screens: computer.screens }),
             }}
             canAssist={role !== "VIEWER"}
           />
@@ -106,7 +114,11 @@ export default async function ComputerPage({
       </div>
 
       <ComputerDetail
-        computer={JSON.parse(JSON.stringify(computer))}
+        computer={JSON.parse(JSON.stringify({
+          ...computer,
+          directoryUser: directoryUsers.find((user) => user.username === computer.adUsername) ?? null,
+          lastUserDirectoryName: directoryUsers.find((user) => user.username === normalizedLastUser)?.displayName ?? null,
+        }))}
         sessions={JSON.parse(
           JSON.stringify(sessions, (_k, v) => (typeof v === "bigint" ? v.toString() : v)),
         )}

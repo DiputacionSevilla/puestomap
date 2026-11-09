@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Download, Filter, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Download, Filter, ChevronsUpDown, ChevronUp, ChevronDown, TriangleAlert } from "lucide-react";
+import { QUALITY_CHECKS, QUALITY_LABELS, type QualityCheck } from "@puestomap/shared";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Checkbox, Label } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,7 +44,12 @@ type ListItem = {
   state: VncUiState;
   multiState: "SINGLE" | "MULTI_OK" | "MULTI_PENDING";
   monitorCount: number | null;
+  screens: { index: number; label: string; port: number; enabled: boolean }[];
   archived: boolean;
+  adUsername: string | null;
+  lastUserNorm: string | null;
+  directoryName: string | null;
+  userMatch: "UNASSIGNED" | "MATCH" | "MISMATCH" | "NO_OCS_USER";
 };
 
 const STATE_OPTIONS: { value: VncUiState; label: string }[] = [
@@ -191,6 +197,13 @@ export function ComputersExplorer({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
+            <div>
+              <Label htmlFor="check">Control de calidad</Label>
+              <Select id="check" value={params.check ?? ""} onChange={(e) => setParams({ check: e.target.value })}>
+                <option value="">Todos</option>
+                {QUALITY_CHECKS.map((check) => <option key={check} value={check}>{QUALITY_LABELS[check as QualityCheck]}</option>)}
+              </Select>
+            </div>
             <div>
               <Label htmlFor="q">Búsqueda</Label>
               <Input
@@ -380,6 +393,11 @@ export function ComputersExplorer({
                   </button>
                 </TableHead>
                 <TableHead>
+                  <button type="button" onClick={() => toggleSort("adUsername")}>
+                    Usuario dominio {sortIcon("adUsername")}
+                  </button>
+                </TableHead>
+                <TableHead>
                   <button type="button" onClick={() => toggleSort("assignedTo")}>
                     Asignado a {sortIcon("assignedTo")}
                   </button>
@@ -430,6 +448,10 @@ export function ComputersExplorer({
                   </TableCell>
                   <TableCell>{item.ip ?? "—"}</TableCell>
                   <TableCell>{item.lastUser ?? "—"}</TableCell>
+                  <TableCell title={item.directoryName ?? undefined}>
+                    {item.adUsername ?? "—"}
+                    {item.userMatch === "MISMATCH" ? <TriangleAlert className="ml-1 inline h-4 w-4 text-amber-600" aria-label="Usuario distinto al último de OCS" /> : null}
+                  </TableCell>
                   <TableCell>{item.assignedTo ?? "—"}</TableCell>
                   <TableCell className="max-w-[220px] truncate">
                     {[item.building, item.floor, item.office].filter(Boolean).join(" / ") || "Sin ubicar"}
@@ -439,7 +461,7 @@ export function ComputersExplorer({
                   <TableCell>{formatRelative(item.lastProbeAt)}</TableCell>
                   <TableCell>
                     <ComputerActions
-                      computer={{ id: item.id, hostname: item.hostname, ip: item.ip, placed: Boolean(item.floorId) }}
+                      computer={{ id: item.id, hostname: item.hostname, ip: item.ip, placed: Boolean(item.floorId), screens: item.screens, multiState: item.multiState }}
                       canAssist={canAssist}
                       compact
                     />
@@ -448,7 +470,7 @@ export function ComputersExplorer({
               ))}
               {items.length === 0 && !loading ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="py-8 text-center text-muted-foreground">
+                  <TableCell colSpan={12} className="py-8 text-center text-muted-foreground">
                     No hay equipos que coincidan con los filtros.
                   </TableCell>
                 </TableRow>

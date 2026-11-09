@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, ArchiveRestore, Pencil, RefreshCw, ScanSearch } from "lucide-react";
+import { Archive, ArchiveRestore, Pencil, Plus, RefreshCw, ScanSearch, Trash2, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input, Select, Textarea, Label } from "@/components/ui/input";
+import { Checkbox, Input, Select, Textarea, Label } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -39,6 +39,10 @@ type ComputerData = {
   ramMb: number | null;
   diskGb: number | null;
   lastUser: string | null;
+  lastUserNorm: string | null;
+  adUsername: string | null;
+  directoryUser: { displayName: string; department: string | null; phone: string | null } | null;
+  lastUserDirectoryName: string | null;
   ocsLastInventory: string | null;
   assignedTo: string | null;
   phoneExt: string | null;
@@ -67,7 +71,7 @@ type ComputerData = {
   office: { id: string; code: string; name: string } | null;
   department: { id: string; code: string; name: string } | null;
   credential: { id: string; name: string; isDefault: boolean } | null;
-  screens: { id: string; index: number; label: string; port: number; enabled: boolean; source: string; reachable: boolean | null }[];
+  screens: { id: string; index: number; label: string; port: number; enabled: boolean; source: string; reachable: boolean | null; lastProbeAt: string | null; lastOkAt: string | null }[];
 };
 
 type SessionRow = {
@@ -130,6 +134,7 @@ export function ComputerDetail({
   const [editOpen, setEditOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [screens, setScreens] = useState(initial.screens);
   const [form, setForm] = useState(() => ({
     assignedTo: initial.assignedTo ?? "",
     phoneExt: initial.phoneExt ?? "",
@@ -142,7 +147,10 @@ export function ComputerDetail({
     credentialId: initial.credentialId ?? "",
     vncPort: String(initial.vncPort),
     vncOverride: initial.vncOverride ?? "",
+    adUsername: initial.adUsername ?? "",
   }));
+  const [directoryOptions, setDirectoryOptions] = useState<{ username: string; displayName: string; department: string | null; phone: string | null }[]>([]);
+  const [suggestions, setSuggestions] = useState<{ username: string; displayName: string; score: number; ambiguous: boolean }[]>([]);
 
   const floorsOfBuilding =
     structure.buildings.find((b) => b.id === form.buildingId)?.floors ?? [];
@@ -165,6 +173,7 @@ export function ComputerDetail({
           credentialId: form.credentialId || null,
           vncPort: Number(form.vncPort) || 5900,
           vncOverride: form.vncOverride ? form.vncOverride : null,
+          adUsername: form.adUsername || null,
         }),
       });
       const data = await res.json();
@@ -178,6 +187,19 @@ export function ComputerDetail({
     } finally {
       setBusy(false);
     }
+  }
+
+  async function searchDirectory(query: string) {
+    setForm((current) => ({ ...current, adUsername: query }));
+    if (!query.trim()) return setDirectoryOptions([]);
+    const response = await fetch(`/api/directory/users?q=${encodeURIComponent(query)}`);
+    if (response.ok) setDirectoryOptions((await response.json()).users);
+  }
+
+  async function loadSuggestions() {
+    if (!form.assignedTo) return;
+    const response = await fetch(`/api/directory/suggest?name=${encodeURIComponent(form.assignedTo)}`);
+    if (response.ok) setSuggestions((await response.json()).suggestions);
   }
 
   async function probeNow() {
@@ -207,6 +229,52 @@ export function ComputerDetail({
     } finally {
       setBusy(false);
     }
+  }
+
+  async function saveScreens(next = screens) {
+    setBusy(true);
+    const res = await fetch(`/api/computers/${computer.id}/screens`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(next.map(({ index, label, port, enabled }) => ({ index, label, port, enabled }))),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setScreens(data.items);
+      setMessage("Pantallas guardadas.");
+      router.refresh();
+    } else setMessage(data?.error?.message ?? "No se pudieron guardar las pantallas.");
+    setBusy(false);
+  }
+
+  async function discoverScreensNow() {
+    setBusy(true);
+    setMessage("Sondeando puertos 5901-5904…");
+    const res = await fetch(`/api/computers/${computer.id}/screens/discover`, { method: "POST" });
+    const data = await res.json();
+    if (res.ok) {
+      setScreens(data.items);
+      setMessage(`Detección completada: ${data.items.filter((screen: { reachable: boolean }) => screen.reachable).length} accesibles.`);
+      router.refresh();
+    } else setMessage(data?.error?.message ?? "No se pudo detectar pantallas.");
+    setBusy(false);
+  }
+
+  function addScreen() {
+    const used = new Set(screens.map((screen) => screen.index));
+    const index = [1, 2, 3, 4].find((value) => !used.has(value));
+    if (!index) return;
+    setScreens([...screens, {
+      id: `new-${index}`,
+      index,
+      label: `Pantalla ${index}`,
+      port: 5900 + index,
+      enabled: true,
+      source: "MANUAL",
+      reachable: null,
+      lastProbeAt: null,
+      lastOkAt: null,
+    }].sort((a, b) => a.index - b.index));
   }
 
   return (
@@ -277,6 +345,7 @@ export function ComputerDetail({
                 <Field label="MAC" value={computer.mac} origin="OCS" />
                 <Field label="Dominio" value={computer.domain} origin="OCS" />
                 <Field label="Último usuario" value={computer.lastUser} origin="OCS" />
+                <Field label="Nombre en directorio" value={computer.lastUserDirectoryName} origin="Directorio" />
                 <Field label="Último inventario OCS" value={formatDateTime(computer.ocsLastInventory)} origin="OCS" />
               </CardContent>
             </Card>
@@ -286,6 +355,8 @@ export function ComputerDetail({
               </CardHeader>
               <CardContent>
                 <Field label="Asignado a" value={computer.assignedTo} origin="Manual" />
+                <Field label="Usuario de dominio" value={<>{computer.adUsername ?? "—"}{computer.adUsername && computer.lastUserNorm && computer.adUsername !== computer.lastUserNorm ? <TriangleAlert className="ml-1 inline h-4 w-4 text-amber-600" /> : null}</>} origin="Manual" />
+                {computer.directoryUser ? <Field label="Datos del directorio" value={[computer.directoryUser.displayName, computer.directoryUser.department, computer.directoryUser.phone].filter(Boolean).join(" · ")} origin="Directorio" /> : null}
                 <Field label="Extensión" value={computer.phoneExt} origin="Manual" />
                 <Field label="Notas" value={computer.notes} origin="Manual" />
               </CardContent>
@@ -434,9 +505,24 @@ export function ComputerDetail({
               <CardTitle className="text-sm">Pantallas</CardTitle>
             </CardHeader>
             <CardContent>
-              {computer.screens.length === 0 ? (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {canEdit ? (
+                  <>
+                    <Button size="sm" variant="outline" onClick={discoverScreensNow} disabled={busy}>
+                      <ScanSearch className="h-4 w-4" /> Detectar pantallas
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={addScreen} disabled={busy || screens.length >= 4}>
+                      <Plus className="h-4 w-4" /> Añadir manualmente
+                    </Button>
+                    <Button size="sm" onClick={() => void saveScreens()} disabled={busy}>
+                      Guardar
+                    </Button>
+                  </>
+                ) : null}
+              </div>
+              {screens.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Sin pantallas configuradas. La gestión de pantallas se implementa en F5b.
+                  Sin pantallas configuradas.
                 </p>
               ) : (
                 <Table>
@@ -448,17 +534,26 @@ export function ComputerDetail({
                       <TableHead>Origen</TableHead>
                       <TableHead>Habilitada</TableHead>
                       <TableHead>Estado</TableHead>
+                      {canEdit ? <TableHead className="w-10" /> : null}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {computer.screens.map((screen) => (
+                    {screens.map((screen) => (
                       <TableRow key={screen.id}>
                         <TableCell>{screen.index}</TableCell>
-                        <TableCell>{screen.label}</TableCell>
-                        <TableCell>{screen.port}</TableCell>
+                        <TableCell>
+                          <Input value={screen.label} disabled={!canEdit} onChange={(event) => setScreens((current) => current.map((item) => item.id === screen.id ? { ...item, label: event.target.value } : item))} />
+                        </TableCell>
+                        <TableCell>
+                          <Input className="w-24" type="number" min={5901} max={5909} value={screen.port} disabled={!canEdit} onChange={(event) => setScreens((current) => current.map((item) => item.id === screen.id ? { ...item, port: Number(event.target.value) } : item))} />
+                        </TableCell>
                         <TableCell>{screen.source}</TableCell>
-                        <TableCell>{screen.enabled ? "sí" : "no"}</TableCell>
-                        <TableCell>{screen.reachable === null ? "sin sondear" : screen.reachable ? "accesible" : "sin respuesta"}</TableCell>
+                        <TableCell><Checkbox checked={screen.enabled} disabled={!canEdit} onChange={(event) => setScreens((current) => current.map((item) => item.id === screen.id ? { ...item, enabled: event.target.checked } : item))} /></TableCell>
+                        <TableCell>
+                          {screen.reachable === null ? "sin sondear" : screen.reachable ? "accesible" : "sin respuesta"}
+                          {screen.lastProbeAt ? <span className="block text-xs text-muted-foreground">{formatDateTime(screen.lastProbeAt)}</span> : null}
+                        </TableCell>
+                        {canEdit ? <TableCell><Button size="icon" variant="ghost" title="Quitar pantalla" onClick={() => setScreens((current) => current.filter((item) => item.id !== screen.id))}><Trash2 className="h-4 w-4" /></Button></TableCell> : null}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -563,8 +658,17 @@ export function ComputerDetail({
           <div className="grid gap-3 md:grid-cols-2">
             <div>
               <Label htmlFor="assignedTo">Asignado a</Label>
-              <Input id="assignedTo" value={form.assignedTo} onChange={(e) => setForm({ ...form, assignedTo: e.target.value })} />
+              <Input id="assignedTo" value={form.assignedTo} onChange={(e) => setForm({ ...form, assignedTo: e.target.value })} onBlur={loadSuggestions} />
             </div>
+            <div>
+              <Label htmlFor="adUsername">Usuario de dominio asignado</Label>
+              <Input id="adUsername" list="directory-users" value={form.adUsername} onChange={(e) => searchDirectory(e.target.value)} />
+              <datalist id="directory-users">{directoryOptions.map((user) => <option key={user.username} value={user.username}>{user.displayName}</option>)}</datalist>
+              {form.adUsername && directoryOptions.length === 0 ? <p className="text-xs text-amber-600">Usuario no encontrado en el directorio; se puede guardar igualmente.</p> : null}
+              {directoryOptions.find((user) => user.username === form.adUsername) ? <p className="text-xs text-muted-foreground">{[directoryOptions.find((user) => user.username === form.adUsername)?.displayName, directoryOptions.find((user) => user.username === form.adUsername)?.department, directoryOptions.find((user) => user.username === form.adUsername)?.phone].filter(Boolean).join(" · ")}</p> : null}
+            </div>
+            {computer.lastUserNorm ? <div className="flex items-end"><Button type="button" variant="outline" onClick={() => setForm({ ...form, adUsername: computer.lastUserNorm ?? "" })}>Usar último usuario de OCS</Button></div> : null}
+            {suggestions.length ? <div className="md:col-span-2 flex flex-wrap gap-2 text-xs">{suggestions.map((suggestion) => <button type="button" key={suggestion.username} disabled={suggestion.ambiguous} onClick={() => setForm({ ...form, adUsername: suggestion.username })} className="rounded-full border px-2 py-1 disabled:opacity-60">{suggestion.ambiguous ? "Varias coincidencias" : suggestion.displayName} · {Math.round(suggestion.score * 100)}%</button>)}</div> : null}
             <div>
               <Label htmlFor="phoneExt">Extensión</Label>
               <Input id="phoneExt" value={form.phoneExt} onChange={(e) => setForm({ ...form, phoneExt: e.target.value })} />

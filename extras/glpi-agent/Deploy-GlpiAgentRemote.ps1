@@ -34,6 +34,7 @@ param(
     [int]      $Throttle = 8,
     [int]      $TimeoutMinutes = 10,
     [string]   $ExcludeVendor = 'RICOH|Synology|Sonic\s?wall|CARRIER ACCESS|Brother|Kyocera|Lexmark|Xerox|Canon|EPSON|\bOKI\b|Ubiquiti|MikroTik|Zyxel|Fortinet|Cisco|Hikvision|Dahua|APC|QNAP',
+    [string]   $ExcludeName = '^(SRV|SRW|SERVIDOR|DC\d|DATOS|VEEAM|SQL|NAS|IDRAC|DESKTOP-)',
     [switch]   $SkipRemoveOld,
     [switch]   $CheckOnly,
     [switch]   $Execute,
@@ -111,7 +112,7 @@ if ($Execute -and -not $Force) {
 
 # ------------------------------ Trabajo por equipo (se ejecuta en un job) ------------------------------
 $worker = {
-    param($Item, $MsiPath, $PayloadPath, $MsiVersion, $Server, $Tag, $Credential, $Execute, $SkipRemoveOld, $CheckOnly, $TimeoutMinutes, $ExcludeVendor)
+    param($Item, $MsiPath, $PayloadPath, $MsiVersion, $Server, $Tag, $Credential, $Execute, $SkipRemoveOld, $CheckOnly, $TimeoutMinutes, $ExcludeVendor, $ExcludeName)
     $ErrorActionPreference = 'Stop'
     if ($Execute -isnot [bool] -or $SkipRemoveOld -isnot [bool] -or $CheckOnly -isnot [bool]) { throw 'Parametros de modo invalidos; se aborta por seguridad.' }
     $result = [ordered]@{ Target = $Item.Target; Hostname = $Item.Hostname; RemoteName = ''; Status = ''; Detail = ''; Time = (Get-Date -Format 's') }
@@ -173,6 +174,7 @@ $worker = {
     try {
         $addr = $Item.Target
         if ($Item.Vendor -and $ExcludeVendor -and $Item.Vendor -match $ExcludeVendor) { $result.Status = 'OMITIDO'; $result.Detail = "Dispositivo no PC (fabricante: $($Item.Vendor))"; return [pscustomobject]$result }
+        if ($Item.Hostname -and $ExcludeName -and $Item.Hostname -match $ExcludeName -and -not $CheckOnly) { $result.Status = 'OMITIDO'; $result.Detail = "Parece un servidor por el nombre ($($Item.Hostname)); use -ExcludeName '' para forzarlo"; return [pscustomobject]$result }
         if ($Item.State -and $Item.State -notmatch 'activ|active|up|online') { $result.Status = 'OMITIDO'; $result.Detail = "Estado en el escaneo: $($Item.State)"; return [pscustomobject]$result }
         if ($Item.Os -and $Item.Os -notmatch 'windows|win\d|microsoft') { $result.Status = 'OMITIDO'; $result.Detail = "Sistema no Windows ($($Item.Os))"; return [pscustomobject]$result }
 
@@ -253,7 +255,7 @@ function Receive-Finished {
 while ($queue.Count -gt 0 -or $running.Count -gt 0) {
     while ($queue.Count -gt 0 -and $running.Count -lt $Throttle) {
         $item = $queue.Dequeue()
-        $job = Start-Job -ScriptBlock $worker -ArgumentList @($item, $MsiPath, $PayloadPath, $msiVersion, $Server, $Tag, $Credential, $executeFlag, $skipRemoveFlag, $checkOnlyFlag, $TimeoutMinutes, $ExcludeVendor)
+        $job = Start-Job -ScriptBlock $worker -ArgumentList @($item, $MsiPath, $PayloadPath, $msiVersion, $Server, $Tag, $Credential, $executeFlag, $skipRemoveFlag, $checkOnlyFlag, $TimeoutMinutes, $ExcludeVendor, $ExcludeName)
         $running[$job] = $item
     }
     Start-Sleep -Milliseconds 500

@@ -195,7 +195,7 @@ $worker = {
                 $result.Detail = "No se puede abrir ADMIN$ con la cuenta usada: $($_.Exception.Message.Trim())"
                 return [pscustomobject]$result
             }
-            $adminRoot = "${driveName}:\"
+            $adminRoot = "\\$addr\ADMIN`$"   # UNC directo: la conexion SMB autenticada de New-PSDrive se reutiliza
         }
         if ($CheckOnly) { $result.Status = 'ACCESO_OK'; $result.Detail = 'ADMIN$ accesible con la cuenta usada'; return [pscustomobject]$result }
 

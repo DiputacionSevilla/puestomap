@@ -12,6 +12,7 @@ import {
   Settings,
   Upload,
   Map as MapIcon,
+  ShieldCheck,
 } from "lucide-react";
 import type { AppRole } from "@/types/next-auth";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,7 @@ const NAV = [
   { href: "/", label: "Inicio", icon: Home },
   { href: "/equipos", label: "Equipos", icon: Monitor },
   { href: "/mapa", label: "Mapa", icon: MapIcon },
+  { href: "/calidad", label: "Calidad", icon: ShieldCheck, techOnly: true },
   { href: "/sesiones", label: "Sesiones", icon: ScreenShare },
   { href: "/estructura", label: "Estructura", icon: Building2 },
   { href: "/importar", label: "Importar/Exportar", icon: Upload },
@@ -36,7 +38,10 @@ export function Sidebar({ role }: { role: AppRole }) {
         PuestoMap
       </div>
       <nav className="flex flex-1 flex-col gap-1 p-2">
-        {NAV.filter((item) => !("adminOnly" in item && item.adminOnly) || role === "ADMIN").map(
+        {NAV.filter((item) =>
+          (!("adminOnly" in item) || !item.adminOnly || role === "ADMIN") &&
+          (!("techOnly" in item) || !item.techOnly || role !== "VIEWER"),
+        ).map(
           (item) => {
             const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
             const Icon = item.icon;

@@ -1,5 +1,6 @@
 import { getPrisma } from "@puestomap/db";
 import type { Prisma } from "@puestomap/db";
+import { sanitizeCsvCell } from "@puestomap/shared";
 import { errorResponse, jsonOk, requireRole } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
@@ -44,7 +45,7 @@ export async function GET(req: Request) {
             row.ip ?? "",
             row.data ? JSON.stringify(row.data) : "",
           ]
-            .map((cell) => (/[;"\r\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell))
+            .map(sanitizeCsvCell)
             .join(";"),
         );
       }

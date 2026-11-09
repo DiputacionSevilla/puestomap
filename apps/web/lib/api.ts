@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { auth } from "@/auth";
 import type { AppRole } from "@/types/next-auth";
+import { log } from "@/lib/logger";
 
 export class ApiError extends Error {
   constructor(
@@ -65,7 +66,7 @@ export function errorResponse(err: unknown): NextResponse {
       { status: 422 },
     );
   }
-  console.error("[api] error inesperado", err);
+  log("error", "Error inesperado en API", { error: err });
   return NextResponse.json(
     { error: { code: "INTERNAL", message: "Error interno del servidor" } },
     { status: 500 },

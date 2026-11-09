@@ -12,7 +12,7 @@ export default async function AjustesPage() {
   const isAdmin = session.user.role === "ADMIN";
 
   const [syncRuns, credentials, users] = await Promise.all([
-    prisma.syncRun.findMany({ orderBy: { startedAt: "desc" }, take: 10 }),
+    prisma.syncRun.findMany({ where: { type: "OCS" }, orderBy: { startedAt: "desc" }, take: 10 }),
     isAdmin || session.user.role === "TECH"
       ? prisma.vncCredential.findMany({
           orderBy: { name: "asc" },

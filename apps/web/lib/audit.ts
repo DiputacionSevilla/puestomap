@@ -1,5 +1,6 @@
 import { getPrisma } from "@puestomap/db";
 import type { Prisma } from "@puestomap/db";
+import { log } from "@/lib/logger";
 
 export type AuditEntry = {
   userId?: string | null;
@@ -23,7 +24,7 @@ export async function audit(entry: AuditEntry): Promise<void> {
       },
     });
   } catch (err) {
-    console.error("[audit] no se pudo registrar", entry.action, err);
+    log("error", "No se pudo registrar la auditoría", { action: entry.action, error: err });
   }
 }
 

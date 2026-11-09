@@ -97,6 +97,7 @@ export default async function HomePage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold tracking-tight">Inicio</h1>
+      <p className="text-sm"><Link href="/calidad" className="text-primary underline-offset-2 hover:underline">Revisar calidad de datos</Link></p>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {kpis.map((kpi) => (

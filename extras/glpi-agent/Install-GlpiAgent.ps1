@@ -1,4 +1,4 @@
-<#
+﻿<#
   Despliegue automático del GLPI Agent por GPO (script de INICIO DEL EQUIPO).
 
   - Idempotente: si el agente ya está en la versión del MSI (o superior), no hace nada.

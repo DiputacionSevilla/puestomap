@@ -45,3 +45,46 @@ el agente en el futuro basta con sustituir el MSI en el recurso compartido.
 - Los parámetros `RUNNOW` y `TAG` del MSI deben confirmarse en la documentación del instalador de
   la versión que se despliegue; si alguno no existe, quitarlo de la lista de argumentos.
 - El script no se ha podido probar contra un dominio real: **el piloto es obligatorio**.
+
+## Despliegue remoto desde un CSV de escaneo (`Deploy-GlpiAgentRemote.ps1`)
+
+Alternativa a la GPO para llegar rápido a la mayoría de equipos: se parte de un CSV con lo que ha
+encontrado el escáner de IPs y se instala el agente en remoto.
+
+**CSV de entrada** (separador `;` o `,`, se detecta solo). Basta una columna de IP o de nombre; se
+reconocen `ip/ipaddress/direccion/address`, `hostname/nombre/name/equipo` y, opcionalmente,
+`os/sistema` (las filas que no sean Windows se omiten). Las IPs repetidas se ignoran.
+
+**Qué hace por equipo:** comprueba puertos 135/445 → se conecta por CIM/DCOM (sin WinRM) → verifica
+que es un puesto Windows y que el nombre coincide con el CSV (si el DHCP ha cambiado de equipo, no
+lo toca) → instala el MSI copiado por `ADMIN$` si falta o es más antiguo → **solo si el GLPI Agent
+queda instalado**, desinstala FusionInventory Agent y OCS Inventory Agent → anota el resultado.
+
+```powershell
+# 1) Simulación (por defecto, solo lectura): dice qué haría en cada equipo
+.\Deploy-GlpiAgentRemote.ps1 -CsvPath .\escaneo.csv -MsiPath .\GLPI-Agent-1.21-x64.msi
+
+# 2) Piloto real con 5 equipos
+.\Deploy-GlpiAgentRemote.ps1 -CsvPath .\escaneo.csv -MsiPath .\GLPI-Agent-1.21-x64.msi -Only PC01,PC02,PC03 -Execute
+
+# 3) Tandas crecientes (pide escribir SI; -Force lo omite)
+.\Deploy-GlpiAgentRemote.ps1 -CsvPath .\escaneo.csv -MsiPath .\GLPI-Agent-1.21-x64.msi -Limit 25 -Execute
+```
+
+Parámetros útiles: `-Credential (Get-Credential)` (cuenta con administrador local; no se guarda),
+`-Only`, `-Limit`, `-Throttle` (equipos en paralelo, 8 por defecto), `-Tag`, `-SkipRemoveOld`,
+`-TimeoutMinutes`. Es idempotente: repetirlo no reinstala donde ya está la versión del MSI.
+
+**Resultados:** `deploy-results-<fecha>.csv` con estados `OK`, `OK_CON_AVISOS`, `SIMULACION`,
+`NO_ALCANZABLE`, `NOMBRE_DISTINTO`, `OMITIDO`, `ERROR_INSTALACION`, `ERROR_VERIFICACION`, `ERROR`.
+En cada equipo queda el log del MSI en `C:\Windows\Temp\glpi-agent-install.log`.
+
+**Requisitos en los destinos:** cuenta de administrador local (p. ej. de dominio; con cuentas locales
+hace falta `LocalAccountTokenFilterPolicy=1`), puertos 135/445 abiertos desde el PC que lanza el
+script y la regla de firewall «Administración remota de Windows (DCOM/WMI)» y «Compartir archivos e
+impresoras». Los equipos apagados saldrán `NO_ALCANZABLE`: repetir el script más tarde.
+
+**Después:** comprobar en GLPI que aparece cada equipo con su inventario y sin duplicados
+(`extras/glpi-upgrade/check_glpi.py`), y retirar del CSV los ya resueltos para la siguiente tanda.
+
+> Los CSV de escaneo y de resultados contienen nombres e IPs internas: no se versionan (`.gitignore`).

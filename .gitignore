@@ -11,3 +11,8 @@ data/carga/
 test-results/
 playwright-report/
 packages/db/prisma/migrations/**/migration_lock.toml.bak
+
+# Despliegue remoto: CSV de escaneo y resultados (datos internos)
+extras/glpi-agent/*.csv
+deploy-results-*.csv
+escaneo*.csv

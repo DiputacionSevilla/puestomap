@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, ArchiveRestore, Pencil, Plus, RefreshCw, ScanSearch, Trash2, TriangleAlert } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox, Input, Select, Textarea, Label } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,7 @@ type ComputerData = {
   id: string;
   hostname: string;
   ocsId: number | null;
+  glpiId?: number | null;
   externalRef: string | null;
   assetTag: string | null;
   serial: string | null;
@@ -117,6 +118,7 @@ export function ComputerDetail({
   structure,
   canEdit,
   canAdmin,
+  glpiPublicUrl,
 }: {
   computer: ComputerData;
   sessions: SessionRow[];
@@ -128,9 +130,15 @@ export function ComputerDetail({
   };
   canEdit: boolean;
   canAdmin: boolean;
+  glpiPublicUrl?: string;
 }) {
   const router = useRouter();
   const [computer, setComputer] = useState(initial);
+  const fromGlpi = computer.glpiId != null;
+  const inventoryOrigin = fromGlpi ? "GLPI" : "OCS";
+  const glpiLink = fromGlpi && glpiPublicUrl
+    ? `${glpiPublicUrl.replace(/\/+$/, "")}/front/computer.form.php?id=${computer.glpiId}`
+    : null;
   const [editOpen, setEditOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -308,6 +316,16 @@ export function ComputerDetail({
         <Button variant="ghost" size="icon" onClick={() => router.refresh()} title="Actualizar">
           <RefreshCw className="h-4 w-4" />
         </Button>
+        {glpiLink ? (
+          <a
+            href={glpiLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={buttonVariants({ variant: "outline" })}
+          >
+            Abrir en GLPI
+          </a>
+        ) : null}
         {message ? <span className="text-sm text-green-600">{message}</span> : null}
       </div>
 
@@ -328,10 +346,12 @@ export function ComputerDetail({
                 <CardTitle className="text-sm">Identidad</CardTitle>
               </CardHeader>
               <CardContent>
-                <Field label="Hostname" value={computer.hostname} origin="OCS" />
-                <Field label="ID OCS" value={computer.ocsId} origin="OCS" />
-                <Field label="Nº de serie" value={computer.serial} origin="OCS" />
-                <Field label="Etiqueta de inventario" value={computer.assetTag} origin="Manual" />
+                <Field label="Hostname" value={computer.hostname} origin={inventoryOrigin} />
+                {fromGlpi
+                  ? <Field label="ID GLPI" value={computer.glpiId} origin="GLPI" />
+                  : <Field label="ID OCS" value={computer.ocsId} origin="OCS" />}
+                <Field label="Nº de serie" value={computer.serial} origin={inventoryOrigin} />
+                <Field label="Etiqueta de inventario" value={computer.assetTag} origin={fromGlpi ? "GLPI" : "Manual"} />
                 <Field label="Fuente" value={computer.source} />
                 <Field label="Referencia externa (GLPI)" value={computer.externalRef} origin="Manual" />
               </CardContent>
@@ -341,12 +361,12 @@ export function ComputerDetail({
                 <CardTitle className="text-sm">Red</CardTitle>
               </CardHeader>
               <CardContent>
-                <Field label="IP" value={computer.ip} origin="OCS" />
-                <Field label="MAC" value={computer.mac} origin="OCS" />
-                <Field label="Dominio" value={computer.domain} origin="OCS" />
-                <Field label="Último usuario" value={computer.lastUser} origin="OCS" />
+                <Field label="IP" value={computer.ip} origin={inventoryOrigin} />
+                <Field label="MAC" value={computer.mac} origin={inventoryOrigin} />
+                <Field label="Dominio" value={computer.domain} origin={inventoryOrigin} />
+                <Field label="Último usuario" value={computer.lastUser} origin={inventoryOrigin} />
                 <Field label="Nombre en directorio" value={computer.lastUserDirectoryName} origin="Directorio" />
-                <Field label="Último inventario OCS" value={formatDateTime(computer.ocsLastInventory)} origin="OCS" />
+                <Field label="Último inventario OCS" value={formatDateTime(computer.ocsLastInventory)} origin={inventoryOrigin} />
               </CardContent>
             </Card>
             <Card>
@@ -376,7 +396,7 @@ export function ComputerDetail({
                   }
                   origin={computer.vncInstalledSrc ?? "Manual"}
                 />
-                <Field label="Versión" value={computer.vncVersion} origin="OCS" />
+                <Field label="Versión" value={computer.vncVersion} origin={inventoryOrigin} />
                 <Field label="Puerto" value={computer.vncPort} origin="Manual" />
                 <Field
                   label="Credencial"
@@ -423,7 +443,7 @@ export function ComputerDetail({
               <CardContent>
                 <Field label="Creado" value={formatDateTime(computer.createdAt)} />
                 <Field label="Actualizado" value={formatDateTime(computer.updatedAt)} />
-                <Field label="Pantallas (OCS)" value={computer.monitorCount} origin="OCS" />
+                <Field label="Pantallas (OCS)" value={computer.monitorCount} origin={inventoryOrigin} />
               </CardContent>
             </Card>
           </div>
@@ -488,12 +508,12 @@ export function ComputerDetail({
             </CardHeader>
             <CardContent>
               <div className="grid gap-2 md:grid-cols-3">
-                <Field label="Fabricante" value={computer.manufacturer} origin="OCS" />
-                <Field label="Modelo" value={computer.model} origin="OCS" />
-                <Field label="CPU" value={computer.cpu} origin="OCS" />
-                <Field label="RAM" value={computer.ramMb ? `${computer.ramMb} MB` : null} origin="OCS" />
-                <Field label="Disco" value={computer.diskGb ? `${computer.diskGb} GB` : null} origin="OCS" />
-                <Field label="SO" value={[computer.os, computer.osVersion].filter(Boolean).join(" ")} origin="OCS" />
+                <Field label="Fabricante" value={computer.manufacturer} origin={inventoryOrigin} />
+                <Field label="Modelo" value={computer.model} origin={inventoryOrigin} />
+                <Field label="CPU" value={computer.cpu} origin={inventoryOrigin} />
+                <Field label="RAM" value={computer.ramMb ? `${computer.ramMb} MB` : null} origin={inventoryOrigin} />
+                <Field label="Disco" value={computer.diskGb ? `${computer.diskGb} GB` : null} origin={inventoryOrigin} />
+                <Field label="SO" value={[computer.os, computer.osVersion].filter(Boolean).join(" ")} origin={inventoryOrigin} />
               </div>
             </CardContent>
           </Card>

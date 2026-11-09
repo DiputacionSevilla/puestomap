@@ -12,7 +12,7 @@ export default async function AjustesPage() {
   const isAdmin = session.user.role === "ADMIN";
 
   const [syncRuns, credentials, users] = await Promise.all([
-    prisma.syncRun.findMany({ where: { type: "OCS" }, orderBy: { startedAt: "desc" }, take: 10 }),
+    prisma.syncRun.findMany({ where: { type: { in: ["GLPI", "OCS"] } }, orderBy: { startedAt: "desc" }, take: 10 }),
     isAdmin || session.user.role === "TECH"
       ? prisma.vncCredential.findMany({
           orderBy: { name: "asc" },
@@ -31,8 +31,9 @@ export default async function AjustesPage() {
     PROBE_ONLINE_PORTS: process.env.PROBE_ONLINE_PORTS ?? "445,135,3389",
     VNC_DEFAULT_PORT: process.env.VNC_DEFAULT_PORT ?? "5900",
     VNC_ALLOWED_PORTS: process.env.VNC_ALLOWED_PORTS ?? "5900-5909",
-    OCS_SYNC_CRON: process.env.OCS_SYNC_CRON ?? "0 */2 * * *",
-    OCS_API_URL: process.env.OCS_API_URL ?? "(no configurada)",
+    GLPI_SYNC_CRON: process.env.GLPI_SYNC_CRON ?? "*/30 * * * *",
+    GLPI_URL: process.env.GLPI_URL ?? "(no configurada)",
+    GLPI_SHADOW: process.env.GLPI_SHADOW ?? "true",
     ALLOWED_CIDRS: process.env.ALLOWED_CIDRS ?? "",
     SESSION_IDLE_TIMEOUT_MIN: process.env.SESSION_IDLE_TIMEOUT_MIN ?? "30",
     SESSION_MAX_HOURS: process.env.SESSION_MAX_HOURS ?? "4",

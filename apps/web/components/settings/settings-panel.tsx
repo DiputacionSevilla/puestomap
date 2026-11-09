@@ -74,7 +74,7 @@ export function SettingsPanel({
     setBusy(true);
     setMessage(null);
     try {
-      const res = await fetch("/api/sync/ocs", { method: "POST" });
+      const res = await fetch("/api/sync/glpi", { method: "POST" });
       const data = await res.json();
       setMessage(
         res.ok
@@ -176,7 +176,7 @@ export function SettingsPanel({
       {message ? <p className="text-sm text-green-600">{message}</p> : null}
       <Tabs defaultValue="ocs">
         <TabsList>
-          <TabsTrigger value="ocs">OCS</TabsTrigger>
+          <TabsTrigger value="ocs">GLPI</TabsTrigger>
           <TabsTrigger value="probe">Sondeo</TabsTrigger>
           <TabsTrigger value="credentials">Credenciales VNC</TabsTrigger>
           {isAdmin ? <TabsTrigger value="users">Usuarios</TabsTrigger> : null}
@@ -187,9 +187,9 @@ export function SettingsPanel({
           <Card>
             <CardHeader className="flex-row items-center justify-between space-y-0">
               <div>
-                <CardTitle className="text-sm">Sincronización con OCS Inventory</CardTitle>
+                <CardTitle className="text-sm">Sincronización con GLPI</CardTitle>
                 <CardDescription>
-                  Las ejecuciones programadas siguen el patrón configurado en OCS_SYNC_CRON.
+                  Las ejecuciones programadas siguen el patrón configurado en GLPI_SYNC_CRON.
                 </CardDescription>
               </div>
               <Button onClick={syncNow} disabled={busy}>

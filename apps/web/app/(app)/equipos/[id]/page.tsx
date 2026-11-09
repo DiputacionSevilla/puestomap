@@ -114,6 +114,7 @@ export default async function ComputerPage({
       </div>
 
       <ComputerDetail
+        glpiPublicUrl={process.env.GLPI_PUBLIC_URL ?? ""}
         computer={JSON.parse(JSON.stringify({
           ...computer,
           directoryUser: directoryUsers.find((user) => user.username === computer.adUsername) ?? null,

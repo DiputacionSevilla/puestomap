@@ -1,0 +1,22 @@
+{
+  "name": "@puestomap/gateway",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@puestomap/shared": "1.0.0",
+    "jose": "6.2.16",
+    "pg": "8.23.1",
+    "ws": "8.22.2"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1",
+    "@types/ws": "8.18.2"
+  }
+}

@@ -4,15 +4,15 @@ Marca `[x]` al completar. Cada tarea cita los requisitos que cubre. Definition o
 criterios de aceptación cumplidos + `npm run verify` en verde + commit.
 
 ## F0 — Base del proyecto
-- [ ] T-01 Monorepo npm workspaces (`apps/web`, `apps/gateway`, `apps/worker`, `packages/db`, `packages/shared`), TypeScript strict compartido, ESLint, Vitest, scripts de AGENTS.md §7 multiplataforma.
-- [ ] T-02 `docker-compose.dev.yml` con Postgres; `.env.example` (07 §4); `npm run gen:secrets`.
-- [ ] T-03 `docs/decisions.md`, `docs/blockers.md`, `docs/progress.md`, `docs/operacion.md` (esqueletos).
+- [x] T-01 Monorepo npm workspaces (`apps/web`, `apps/gateway`, `apps/worker`, `packages/db`, `packages/shared`), TypeScript strict compartido, ESLint, Vitest, scripts de AGENTS.md §7 multiplataforma.
+- [x] T-02 `docker-compose.dev.yml` con Postgres; `.env.example` (07 §4); `npm run gen:secrets`.
+- [x] T-03 `docs/decisions.md`, `docs/blockers.md`, `docs/progress.md`, `docs/operacion.md` (esqueletos).
 - [ ] T-04 Next.js en `apps/web` con Tailwind + shadcn/ui, layout con barra lateral (06 §2), `/api/health`.
 
 ## F1 — Datos, seguridad y utilidades
-- [ ] T-05 Esquema Prisma (02 §1), migración inicial, cliente exportado desde `packages/db`.
-- [ ] T-06 Seed de desarrollo (DM-8) con planos SVG de ejemplo generados.
-- [ ] T-07 `packages/shared`: `crypto`, `token`, `cidr`, `rfb`, `hostname`, `geo`, `vnc-status` + tests T-U1…T-U7.
+- [x] T-05 Esquema Prisma (02 §1), migración inicial, cliente exportado desde `packages/db`.
+- [x] T-06 Seed de desarrollo (DM-8) con planos SVG de ejemplo generados.
+- [x] T-07 `packages/shared`: `crypto`, `token`, `cidr`, `rfb`, `hostname`, `geo`, `vnc-status` + tests T-U1…T-U7.
 - [ ] T-08 Auth.js Credentials + bcryptjs, middleware de rutas, bloqueo por intentos, roles (RF-01, RNF-SEC-2). Helper `requireRole()` para handlers.
 - [ ] T-09 Servicio de auditoría `audit(action, entity, entityId, data)` (RNF-SEC-7).
 

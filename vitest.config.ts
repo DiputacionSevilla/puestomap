@@ -5,6 +5,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@puestomap/shared/probe": path.resolve("packages/shared/src/probe.ts"),
+      "@puestomap/shared/crypto": path.resolve("packages/shared/src/crypto.ts"),
+      "@puestomap/shared/token": path.resolve("packages/shared/src/token.ts"),
       "@puestomap/shared": path.resolve("packages/shared/src/index.ts"),
       "@puestomap/db": path.resolve("packages/db/src/index.ts"),
     },

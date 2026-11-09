@@ -1,0 +1,250 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  TECH
+  VIEWER
+}
+
+enum TriState {
+  YES
+  NO
+  UNKNOWN
+}
+
+enum DataSource {
+  OCS
+  CSV
+  MANUAL
+}
+
+enum SessionMode {
+  WEB
+  NATIVE
+}
+
+enum SessionStatus {
+  PENDING
+  ACTIVE
+  ENDED
+  FAILED
+  EXPIRED
+}
+
+enum SyncType {
+  OCS
+  PROBE
+  CSV
+}
+
+enum SyncStatus {
+  RUNNING
+  OK
+  PARTIAL
+  ERROR
+}
+
+model User {
+  id            String          @id @default(cuid())
+  username      String          @unique
+  name          String
+  email         String?
+  passwordHash  String
+  role          Role            @default(TECH)
+  active        Boolean         @default(true)
+  failedLogins  Int             @default(0)
+  lockedUntil   DateTime?
+  lastLoginAt   DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  sessions      RemoteSession[]
+  audits        AuditLog[]
+}
+
+model Building {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  address   String?
+  sortOrder Int      @default(0)
+  floors    Floor[]
+}
+
+model Floor {
+  id          String     @id @default(cuid())
+  buildingId  String
+  building    Building   @relation(fields: [buildingId], references: [id], onDelete: Restrict)
+  name        String
+  level       Int        @default(0)
+  planFile    String?
+  planWidth   Int?
+  planHeight  Int?
+  offices     Office[]
+  computers   Computer[]
+  @@unique([buildingId, name])
+}
+
+model Department {
+  id        String     @id @default(cuid())
+  code      String     @unique
+  name      String
+  offices   Office[]
+  computers Computer[]
+}
+
+model Office {
+  id           String      @id @default(cuid())
+  floorId      String
+  floor        Floor       @relation(fields: [floorId], references: [id], onDelete: Restrict)
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  code         String
+  name         String
+  rect         Json?
+  computers    Computer[]
+  @@unique([floorId, code])
+}
+
+model VncCredential {
+  id           String     @id @default(cuid())
+  name         String     @unique
+  passwordEnc  String
+  isDefault    Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  computers    Computer[]
+}
+
+model Computer {
+  id               String         @id @default(cuid())
+  hostname         String         @unique
+  ocsId            Int?           @unique
+  externalRef      String?
+  assetTag         String?
+  serial           String?
+  source           DataSource     @default(MANUAL)
+  archived         Boolean        @default(false)
+  ip               String?
+  mac              String?
+  domain           String?
+  manufacturer     String?
+  model            String?
+  os               String?
+  osVersion        String?
+  cpu              String?
+  ramMb            Int?
+  diskGb           Int?
+  lastUser         String?
+  ocsLastInventory DateTime?
+  assignedTo       String?
+  phoneExt         String?
+  notes            String?
+  floorId          String?
+  floor            Floor?         @relation(fields: [floorId], references: [id])
+  officeId         String?
+  office           Office?        @relation(fields: [officeId], references: [id])
+  departmentId     String?
+  department       Department?    @relation(fields: [departmentId], references: [id])
+  posX             Float?
+  posY             Float?
+  vncInstalled     TriState       @default(UNKNOWN)
+  vncInstalledSrc  String?
+  vncVersion       String?
+  vncPort          Int            @default(5900)
+  vncOverride      TriState?
+  credentialId     String?
+  credential       VncCredential? @relation(fields: [credentialId], references: [id])
+  online           Boolean?
+  vncReachable     Boolean?
+  rfbVersion       String?
+  lastProbeAt      DateTime?
+  lastSeenAt       DateTime?
+  lastVncOkAt      DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  monitorCount     Int?
+  screens          ComputerScreen[]
+  sessions         RemoteSession[]
+  @@index([ip])
+  @@index([floorId])
+  @@index([departmentId])
+  @@index([lastUser])
+}
+
+model ComputerScreen {
+  id          String    @id @default(cuid())
+  computerId  String
+  computer    Computer  @relation(fields: [computerId], references: [id], onDelete: Cascade)
+  index       Int
+  label       String
+  port        Int
+  source      String    @default("MANUAL")
+  enabled     Boolean   @default(true)
+  reachable   Boolean?
+  lastProbeAt DateTime?
+  lastOkAt    DateTime?
+  @@unique([computerId, index])
+  @@unique([computerId, port])
+}
+
+model RemoteSession {
+  id          String        @id @default(cuid())
+  computerId  String
+  computer    Computer      @relation(fields: [computerId], references: [id])
+  userId      String
+  user        User          @relation(fields: [userId], references: [id])
+  mode        SessionMode
+  status      SessionStatus @default(PENDING)
+  reason      String?
+  targetIp    String?
+  clientIp    String?
+  createdAt   DateTime      @default(now())
+  startedAt   DateTime?
+  endedAt     DateTime?
+  bytesIn     BigInt        @default(0)
+  bytesOut    BigInt        @default(0)
+  endReason   String?
+  targetPort  Int?
+  screenId    String?
+  screenLabel String?
+  groupId     String?
+  @@index([groupId])
+  @@index([computerId, createdAt])
+  @@index([status])
+}
+
+model SyncRun {
+  id         String     @id @default(cuid())
+  type       SyncType
+  status     SyncStatus @default(RUNNING)
+  startedAt  DateTime   @default(now())
+  finishedAt DateTime?
+  stats      Json?
+  error      String?
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  entity    String?
+  entityId  String?
+  data      Json?
+  ip        String?
+  createdAt DateTime @default(now())
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+model Setting {
+  key   String @id
+  value Json
+}

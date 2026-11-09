@@ -12,6 +12,7 @@
     "packages/*"
   ],
   "scripts": {
+    "postinstall": "prisma generate --schema packages/db/prisma/schema.prisma",
     "dev": "npm run build:libs && node scripts/dev.mjs",
     "build:libs": "npm run build -w @puestomap/shared && npm run build -w @puestomap/db",
     "lint": "eslint .",
@@ -23,8 +24,26 @@
     "db:migrate": "prisma migrate dev --schema packages/db/prisma/schema.prisma",
     "db:deploy": "prisma migrate deploy --schema packages/db/prisma/schema.prisma",
     "db:generate": "prisma generate --schema packages/db/prisma/schema.prisma",
-    "db:seed": "npm run build:libs && node packages/db/dist/seed.js",
+    "db:seed": "npm run build:libs && node --env-file-if-exists=.env packages/db/dist/seed.js",
     "gen:secrets": "node scripts/gen-secrets.mjs",
     "smoke": "node scripts/smoke.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.65.0",
+    "@types/node": "26.6.6",
+    "eslint": "10.14.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "prisma": "6.19.3",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.1",
+    "vitest": "5.1.0"
+  },
+  "allowScripts": {
+    "prisma@6.19.3": true,
+    "@prisma/engines@6.19.3": true,
+    "esbuild@0.28.2": true,
+    "@prisma/client@6.19.3": true
   }
 }

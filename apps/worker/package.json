@@ -1,0 +1,18 @@
+{
+  "name": "@puestomap/worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@puestomap/db": "1.0.0",
+    "@puestomap/shared": "1.0.0",
+    "node-cron": "4.6.0",
+    "p-limit": "3.1.0"
+  }
+}

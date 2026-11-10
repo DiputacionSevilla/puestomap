@@ -81,6 +81,11 @@ notificaciones, recolector de correo y tareas `mailgate`/`queuednotification` (v
   prueba enviada como `fjcarrion@`). Solución elegida: usar el buzón propio `informatica@mairenadelalcor.es` como usuario SMTP (su clave está en
   `.env` como `CORREO_PW`/`CORREO_US`). Staging ya configurado con él (`scripts/set-smtp.php`, clave cifrada); prueba enviada (cola `3EEEE80051`).
   EN EL CORTE hay que REPETIR este paso: la copia final de GLPI 10 trae otra vez el usuario/clave antiguos (de `fjcarrion@`).
+- Diagnóstico de entrega (2026-11-10): `informatica@`→`informatica@` llega rápido; `informatica@`→`fjcarrion@` NO llega (el proveedor acepta en cola);
+  `fjcarrion@`→`fjcarrion@` llega. Sospecha: filtro/regla/cuarentena en el buzón `fjcarrion@` (SPF del dominio `-all`, DMARC `quarantine`,
+  MX en SpamExperts). Staging: `admin_email` = `informatica@`; incidencia de ensayo #1804 → 1 aviso, solo a `informatica@`, enviado por el cron
+  del contenedor. Restauración del cron por id: `secrets/crontasks_por_id.tsv`. Pendiente: probar un tercer buzón interno y revisar la
+  cuarentena de SpamExperts. EN EL CORTE: fijar también `admin_email=informatica@` (la copia final trae `fjcarrion@`).
 - Para el corte: en GLPI 12 activar `GLPI_CRONTAB_ENABLED=1` y las tareas `queuednotification`/`mailgate`; apartar la cola antigua ANTES
   de activar el cron (si no se enviarían ~700 avisos de julio a noviembre); probar un ticket de ensayo con destinatarios controlados.
 

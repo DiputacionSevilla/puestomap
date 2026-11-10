@@ -35,6 +35,10 @@ notificaciones, recolector de correo y tareas `mailgate`/`queuednotification` (v
 - [ ] Probar con un agente piloto (GLPI Agent 1.21) que soporta el método elegido; si no, actualizar el agente.
 - [x] Probado con proxy nginx: `apirest.php` e `inventory.php` funcionan bajo `/glpi/`; la WEB NO (enlaces absolutos desde `/`).
       Decisión pendiente: web en la raíz del dominio + `/glpi/` solo compatibilidad (ver `proxy-ejemplo.conf`) y avisar a los usuarios.
+- [x] Servicio `proxy` (nginx) añadido al compose del staging: `127.0.0.1:18081`, config en `proxy/default.conf`
+      (web en `/`, `/glpi/` solo `inventory.php` y `apirest.php`, resto de `/glpi/...` redirige a `/...` con https).
+      Probado con cabeceras simuladas de Nginx Proxy Manager. En el corte, NPM solo cambia IP y puerto de reenvío.
+- [ ] Ajustar `geo $inventario_permitido` (subredes de agentes) antes de producir; probar en NPM con TLS real.
 - [ ] (histórico) Definir la URL: hoy los agentes envían a `https://soporte.mairenadelalcor.net/glpi/front/inventory.php`.
       La imagen sirve en la raíz (GLPI 11/12 usan `public/`): o el proxy mapea `/glpi/` → contenedor, o hay que
       cambiar `SERVER` de los agentes (GPO / script de despliegue) y `GLPI_URL` de PuestoMap.

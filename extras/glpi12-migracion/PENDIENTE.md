@@ -114,6 +114,15 @@ Datos de la Fase A: 153 PCs activos; **138 sin actualizar >180 días**; `glpi_it
 - [ ] Mantener GLPI 10 conservado y no editable hasta acabar la estabilización.
 - [ ] Reapuntar PuestoMap (`GLPI_URL`, token de solo lectura, `GLPI_SHADOW=false` tras revisar `wouldCreate`; `pg_dump` antes).
 
+## 6b. Ensayo del corte (2026-11-10, 13:25-13:30) — `scripts/ensayo-corte.sh`
+Entorno separado `/opt/glpi12-ensayo` (puertos 18090/18091, BD propia), con volcado fresco del GLPI 10 vivo (solo lectura: `mysqldump --single-transaction`).
+Tiempos: volcado+ficheros ~25 s, parar staging 1 15 s, restaurar 105 s, `database:update` 79 s, resto <10 s; TOTAL 246 s (4 min).
+Validación: tickets 1804, seguimientos 414, docs 244, usuarios 192, equipos 168, monitores 128, lugares 34: IGUALES al origen; esquema íntegro; web 200; API `/glpi/` 200;
+versión 12.0.1. Hallazgos: (1) `auth_required` llega vacío y el inventario se rechaza hasta fijarlo en `none`; (2) 696 notificaciones atrasadas a apartar
+(`is_deleted=1`) antes de activar el cron; (3) config de correo (usuario/clave cifrados de informatica@ + admin_email) se copia como sentencias SQL cifradas;
+(4) `tar` avisa de ficheros de caché con fecha futura: inofensivo; (5) el origen ya tiene 2 incidencias más que la copia de las 01:06 → copia final en la ventana.
+Riesgo: tras el ensayo el disco del servidor pasó a 94 % (1,3 GB libres). Borrar el volumen del ensayo (`docker compose down -v` en /opt/glpi12-ensayo) requiere confirmación.
+
 ## 7. Seguridad y operación
 - [ ] Cambiar las contraseñas de `fjcarrion` y del usuario `glpi` de MySQL (ambas se vieron en el chat); retirar la clave
       pública de Claude de `authorized_keys` cuando acabe el trabajo.

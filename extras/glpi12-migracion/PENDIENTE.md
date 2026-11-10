@@ -86,6 +86,9 @@ notificaciones, recolector de correo y tareas `mailgate`/`queuednotification` (v
   MX en SpamExperts). Staging: `admin_email` = `informatica@`; incidencia de ensayo #1804 → 1 aviso, solo a `informatica@`, enviado por el cron
   del contenedor. Restauración del cron por id: `secrets/crontasks_por_id.tsv`. Pendiente: probar un tercer buzón interno y revisar la
   cuarentena de SpamExperts. EN EL CORTE: fijar también `admin_email=informatica@` (la copia final trae `fjcarrion@`).
+- App de incidencias móvil (`../glpi-incidencias-movil`) vs staging GLPI 12 (2026-11-10): `probe:glpi` OK por `/glpi/apirest.php` y flujo de escritura
+  replicado con `prueba_tecnico` (crear asignada, leer, editar, seguimiento público, cierre a estado 6 con `status-closed`): 11/11 pasos OK
+  (incidencia #1805). Sin probar: la app en sí (BFF/Redis) ni a través de https/proxy real; las notificaciones estaban apagadas.
 - Para el corte: en GLPI 12 activar `GLPI_CRONTAB_ENABLED=1` y las tareas `queuednotification`/`mailgate`; apartar la cola antigua ANTES
   de activar el cron (si no se enviarían ~700 avisos de julio a noviembre); probar un ticket de ensayo con destinatarios controlados.
 

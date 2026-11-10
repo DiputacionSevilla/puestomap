@@ -27,11 +27,15 @@ notificaciones, recolector de correo y tareas `mailgate`/`queuednotification` (v
 - [ ] Añadir al sync un filtro por estado o última actualización para no importar «Inventario anterior» (tras la limpieza).
 
 ## 3. Inventario de agentes (bloqueante antes del corte)
-- [ ] GLPI 12 avisa: *«No authentication method is configured for inventory: agents will be rejected»*. Elegir método
+- [x] (2026-11-10) Staging con `auth_required=none`; agente 1.21 de AYUOAC006 enviado OK (sin duplicar equipo).
+- [ ] Decidir el método para producción (recomendado: `none` + restringir `/front/inventory.php` por IP en el proxy).
+- [ ] (histórico) GLPI 12 avisa: *«No authentication method is configured for inventory: agents will be rejected»*. Elegir método
       (OAuth client_credentials con alcance `inventory`, o el modo anónimo si procede y la red es de confianza) en
       Configuración → Inventario.
 - [ ] Probar con un agente piloto (GLPI Agent 1.21) que soporta el método elegido; si no, actualizar el agente.
-- [ ] Definir la URL: hoy los agentes envían a `https://soporte.mairenadelalcor.net/glpi/front/inventory.php`.
+- [x] Probado con proxy nginx: `apirest.php` e `inventory.php` funcionan bajo `/glpi/`; la WEB NO (enlaces absolutos desde `/`).
+      Decisión pendiente: web en la raíz del dominio + `/glpi/` solo compatibilidad (ver `proxy-ejemplo.conf`) y avisar a los usuarios.
+- [ ] (histórico) Definir la URL: hoy los agentes envían a `https://soporte.mairenadelalcor.net/glpi/front/inventory.php`.
       La imagen sirve en la raíz (GLPI 11/12 usan `public/`): o el proxy mapea `/glpi/` → contenedor, o hay que
       cambiar `SERVER` de los agentes (GPO / script de despliegue) y `GLPI_URL` de PuestoMap.
 - [ ] No desplegar agentes al staging mientras GLPI 10 sea producción, salvo pilotos expresos.

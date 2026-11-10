@@ -23,6 +23,12 @@ notificaciones, recolector de correo y tareas `mailgate`/`queuednotification` (v
       (600, root; GLPI 12 guarda `api_token` CIFRADO: generarlo con `User::getUniqueToken` + `GLPIKey`, no insertarlo en claro).
       API OK sin App-Token (cliente 2); PUT denegado. Sync en sombra contra el staging: 97 altas / 54 actualizaciones /
       2 conflictos (AYUPICMST, AYUHAC14), 34 lugares, 133 sin lugar = igual que contra GLPI 10; 2 errores parciales por revisar.
+- [x] Los «2 errores parciales» del sync NO son fallos de la API: son los 2 conflictos de nombre (el código suma `errors` por cada
+      conflicto). Son 2 pares de máquinas DISTINTAS con el mismo nombre (series y UUID diferentes):
+      AYUHAC14 = GLPI 44 (serie S4PS3782, agente 2026-09-07) y 72 (S4PR3380, sin agente, mod. 2026-03);
+      AYUPICmst = GLPI 57 (serie 1002594, sin agente, mod. 2023-10) y 70 (serie 1002589, agente 2026-09-02).
+      En PuestoMap AYUPICMST existe sin `glpiId` (legado de OCS); AYUHAC14 no existe. Pendiente: confirmar con la etiqueta física
+      cuál es el equipo vigente y pasar el otro a «Inventario anterior» (solo en el staging) antes del corte.
 - [ ] (histórico) Crear en el staging un token de API de solo lectura y probar `GLPI_URL=http://…/` con el sync en modo sombra
       (sesión, `Computer`, `Computer/{id}/Item_OperatingSystem`, `Computer/{id}/Computer_Item`, `Location`, `User`,
       `State`, `Manufacturer`, `ComputerModel`, PUT de ubicación si `GLPI_WRITEBACK_LOCATION`).

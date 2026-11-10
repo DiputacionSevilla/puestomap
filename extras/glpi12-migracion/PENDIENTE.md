@@ -159,3 +159,8 @@ Para desactivar correo en una base restaurada de nuevo (dentro del contenedor `d
 El usuario confirmó que llegan los correos y declaró finalizada la migración: GLPI 12 queda en producción. Verificado: tickets creados desde la app
 (#1805, #1806) → avisos enviados por cron al primer intento y recibidos. GLPI 10 sigue en mantenimiento (marcha atrás, `scripts/rollback-corte.sh`).
 Pendiente post-migración: ver sección 6c (agentes FusionInventory, disco/RAM/VM, copia externa, tareas cron restantes, retirada de GLPI 10).
+
+## 6e. PuestoMap en sincronización real (2026-11-10, 14:00Z)
+`GLPI_SHADOW=false` en el `.env` de PuestoMap prod y worker reconstruido (backup previo de la BD). Primera sync: 99 altas + 67 vinculados
+(243 equipos, 166 con glpiId). `GLPI_WRITEBACK_LOCATION=false` (PuestoMap no escribe en GLPI). Pendiente: duplicado AYUPICMST (GLPI 57/70) y
+~149 equipos sin ubicación en GLPI (salen sin posición en el plano).

@@ -54,6 +54,16 @@ notificaciones, recolector de correo y tareas `mailgate`/`queuednotification` (v
       cambiar `SERVER` de los agentes (GPO / script de despliegue) y `GLPI_URL` de PuestoMap.
 - [ ] No desplegar agentes al staging mientras GLPI 10 sea producción, salvo pilotos expresos.
 
+## 3b. Migración de agentes antes del corte (2026-11-10)
+- Hallazgo: GLPI 10 conserva las tablas del plugin FusionInventory y 42 PCs reportaban SOLO por ese agente; GLPI 12 las migra a
+  `glpi_agents` (146 filas en staging vs 17 en prod) pero esos agentes dejarían de reportar tras el corte. Hay que migrarlos al GLPI Agent 1.21.
+- Hecho hoy con `Deploy-GlpiAgentRemote.ps1`: ~37 PCs más con GLPI Agent (prod: 48 agentes, todos con contacto hoy). Pendientes: 24 con solo
+  FusionInventory (11 vistos encendidos hoy, 13 apagados/no vistos). Fallos conocidos: `sc create` denegado (AYUGMU07, AYUGMU08, AYUAPL05,
+  MA0134, AYUSSO04), tiempo agotado (ayu1002, AYUOBR019, AYUSSO0002, AYUGMU02, AYUAPL04, ayurrhh0009), dominio no disponible
+  (AYUORI08, ayun1004, AYUCUL04, AYUOAC69, AYUSSO051, AYUSEC036), servicio de logon (AYUHAC09, AYUHAC12), credenciales (AYUdeliPract,
+  MA0214), tipo de logon no permitido (POL-TRAMITE), AYURRH01 (VM) y AYUBIB01 por confirmar. Siguiente: GPO/instalación local.
+- Criterio de limpieza: usar contacto de agente (GLPI y FusionInventory), NO `date_mod`. Plan por equipo: `docs/plan_depuracion_equipos.csv`.
+
 ## 4. Limpieza del inventario (solo en el staging, con plan aprobado)
 Datos de la Fase A: 153 PCs activos; **138 sin actualizar >180 días**; `glpi_items_tickets` vacía (ningún ticket enlaza PCs).
 - [ ] Exportar `plan_depuracion_equipos.csv` (id, nombre, serie, UUID, estado, última actualización, vínculos).

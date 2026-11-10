@@ -44,7 +44,7 @@ services:
       # Nombres de variables PENDIENTES DE CONFIRMAR contra el README de glpi-project/docker-images
       GLPI_SKIP_AUTOINSTALL: "true"
       GLPI_SKIP_AUTOUPDATE: "true"
-      GLPI_CRONTAB_ENABLED: "0"
+      GLPI_CRONTAB_ENABLED: "${GLPI_CRONTAB_ENABLED:-0}"
       TZ: Europe/Madrid
     ports:
       - "${GLPI_BIND_IP:-127.0.0.1}:${GLPI_HOST_PORT:-18080}:80"

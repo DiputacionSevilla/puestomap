@@ -71,6 +71,12 @@ notificaciones, recolector de correo y tareas `mailgate`/`queuednotification` (v
 - Staging GLPI 12: `smtp_mode` migrado a 1 (SMTP con STARTTLS automático). Cola antigua apartada (`is_deleted=1`, 682, reversible),
   notificaciones activadas y correo de prueba (`NotificationMailing::testNotification`) enviado a `admin_email`: GLPI informa éxito.
   El cron del contenedor sigue desactivado (`GLPI_CRONTAB_ENABLED=0`, tareas en estado 0).
+- Prueba de extremo a extremo (2026-11-10, staging): el correo de prueba llegó (el proveedor tarda unos minutos). Incidencia de ensayo #1803 por
+  API con `prueba_tecnico` (perfil Technician, sin correo; contraseña en `/opt/glpi12-migracion/secrets/prueba_tecnico.pass`, 600): 1 aviso en cola,
+  solo a `admin_email`, y el cron del contenedor (`GLPI_CRONTAB_ENABLED=1`, solo `queuednotification` activa) lo envió solo en <1 min, sin errores.
+  Staging devuelto a modo seguro: cron del contenedor apagado, tareas con su estado original, notificaciones desactivadas.
+  Para repetir: `GLPI_CRONTAB_ENABLED=1 docker compose up -d --no-deps glpi` tras activar `use_notifications` y dejar activa solo esa tarea.
+  Nota: en el contenedor root no puede borrar ficheros de otros usuarios en /tmp (rm da «Operation not permitted»): usar `|| true`.
 - Para el corte: en GLPI 12 activar `GLPI_CRONTAB_ENABLED=1` y las tareas `queuednotification`/`mailgate`; apartar la cola antigua ANTES
   de activar el cron (si no se enviarían ~700 avisos de julio a noviembre); probar un ticket de ensayo con destinatarios controlados.
 

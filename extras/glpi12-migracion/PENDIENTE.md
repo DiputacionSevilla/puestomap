@@ -64,6 +64,16 @@ notificaciones, recolector de correo y tareas `mailgate`/`queuednotification` (v
   MA0214), tipo de logon no permitido (POL-TRAMITE), AYURRH01 (VM) y AYUBIB01 por confirmar. Siguiente: GPO/instalación local.
 - Criterio de limpieza: usar contacto de agente (GLPI y FusionInventory), NO `date_mod`. Plan por equipo: `docs/plan_depuracion_equipos.csv`.
 
+## 3c. Correo de GLPI (2026-11-10)
+- Diagnóstico GLPI 10: 696 notificaciones sin enviar desde 2026-07-21, ninguna con intentos. La tarea `queuednotification` está en modo CLI
+  (mode 2) y NO hay cron del sistema que lance `cron.php`: última ejecución 2026-07-20. SMTP: `correo.mairenadelalcor.es:587` con STARTTLS
+  (en GLPI 10 `smtp_mode=3` = SMTP+TLS, correcto; 465 también responde). El log de errores SMTP solo trae fallos de 2023.
+- Staging GLPI 12: `smtp_mode` migrado a 1 (SMTP con STARTTLS automático). Cola antigua apartada (`is_deleted=1`, 682, reversible),
+  notificaciones activadas y correo de prueba (`NotificationMailing::testNotification`) enviado a `admin_email`: GLPI informa éxito.
+  El cron del contenedor sigue desactivado (`GLPI_CRONTAB_ENABLED=0`, tareas en estado 0).
+- Para el corte: en GLPI 12 activar `GLPI_CRONTAB_ENABLED=1` y las tareas `queuednotification`/`mailgate`; apartar la cola antigua ANTES
+  de activar el cron (si no se enviarían ~700 avisos de julio a noviembre); probar un ticket de ensayo con destinatarios controlados.
+
 ## 4. Limpieza del inventario (solo en el staging, con plan aprobado)
 Datos de la Fase A: 153 PCs activos; **138 sin actualizar >180 días**; `glpi_items_tickets` vacía (ningún ticket enlaza PCs).
 - [ ] Exportar `plan_depuracion_equipos.csv` (id, nombre, serie, UUID, estado, última actualización, vínculos).

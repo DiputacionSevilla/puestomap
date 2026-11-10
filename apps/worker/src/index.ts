@@ -52,7 +52,13 @@ export function startWorker() {
   const interval = Math.max(1, Math.min(59, Number(process.env.PROBE_INTERVAL_MIN ?? 5) || 5));
   cron.schedule(`*/${interval} * * * *`, () => void guardedProbe());
   if (process.env.GLPI_URL && process.env.GLPI_TOKEN) {
-    cron.schedule(process.env.GLPI_SYNC_CRON ?? "*/30 * * * *", () => void guardedGlpiSync());
+    // GLPI_SYNC_CRON=off|manual desactiva la sync periódica; solo se lanza a petición (glpi.requestedAt).
+    const glpiCron = (process.env.GLPI_SYNC_CRON ?? "*/30 * * * *").trim();
+    if (!["", "off", "manual", "false", "0"].includes(glpiCron.toLowerCase())) {
+      cron.schedule(glpiCron, () => void guardedGlpiSync());
+    } else {
+      log("glpi.sync.schedule.disabled", { mode: "manual" });
+    }
     cron.schedule("*/30 * * * * *", () => void (async () => {
       const [requested, handled] = await Promise.all([
         prisma.setting.findUnique({ where: { key: "glpi.requestedAt" } }),

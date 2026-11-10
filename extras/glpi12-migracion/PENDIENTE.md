@@ -123,6 +123,19 @@ versión 12.0.1. Hallazgos: (1) `auth_required` llega vacío y el inventario se 
 (4) `tar` avisa de ficheros de caché con fecha futura: inofensivo; (5) el origen ya tiene 2 incidencias más que la copia de las 01:06 → copia final en la ventana.
 Riesgo: tras el ensayo el disco del servidor pasó a 94 % (1,3 GB libres). Borrar el volumen del ensayo (`docker compose down -v` en /opt/glpi12-ensayo) requiere confirmación.
 
+## 6c. CORTE REALIZADO (2026-11-10, ventana 13:36-13:45)
+Fase A (`scripts/corte-fase-A.sh`, 253 s): GLPI 10 en mantenimiento (+ recolector y cola parados), copia final con SHA256 (`corte_*` en
+`/var/backups/glpi-migracion`), restauración en la BD del staging (recreada), `database:update` a 12.0.1, config (url_base sin /glpi, `auth_required=none`,
+correo de informatica@, 696 avisos atrasados BORRADOS a petición del usuario), nginx en `10.158.1.220:8080`. Recuentos idénticos. LECCIÓN: la copia
+heredó `maintenance_mode=1` de GLPI 10 y hubo que ponerlo a 0 en GLPI 12 (ya corregido en el script).
+Nginx Proxy Manager: `Forward Port` 80 → 8080 (hecho por el usuario). Comprobado en `https://soporte.mairenadelalcor.net/`: login GLPI 12, `/glpi/` → `/`,
+API y inventario OK. Cron del contenedor ON con solo `queuednotification`, `queuednotificationclean`, `mailgate` (resto de tareas OFF a propósito:
+`PurgeLogs`, `cleanorphans`, `pendingreason_autobump_autosolve`, etc. quedan por revisar). PuestoMap: token OK por la URL pública y sync en sombra
+OK (99 altas, 67 act., 1 conflicto AYUPICMST). El 502 del worker a las 13:30 fue ANTES del corte (ensayo, poca RAM).
+GLPI 10 sigue en mantenimiento como marcha atrás: `scripts/rollback-corte.sh` + puerto 80 en NPM.
+PENDIENTE: URL de la app de incidencias (`http://10.158.1.220:8080/glpi`), agentes FusionInventory (24 PCs sin agente GLPI), disco 88 %/RAM justa, cron de las
+demás tareas, correo real a técnicos, estabilización y decisión sobre retirar GLPI 10.
+
 ## 7. Seguridad y operación
 - [ ] Cambiar las contraseñas de `fjcarrion` y del usuario `glpi` de MySQL (ambas se vieron en el chat); retirar la clave
       pública de Claude de `authorized_keys` cuando acabe el trabajo.

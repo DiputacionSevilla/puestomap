@@ -154,3 +154,8 @@ Para desactivar correo en una base restaurada de nuevo (dentro del contenedor `d
 `update glpi_configs set value=0 where context='core' and name in ('use_notifications','notifications_mailing');`
 `update glpi_mailcollectors set is_active=0;`
 `update glpi_crontasks set state=0 where name in ('mailgate','queuednotification','queuednotificationclean','mailgateerror');`
+
+## 6d. CIERRE DE LA MIGRACIÓN (2026-11-10)
+El usuario confirmó que llegan los correos y declaró finalizada la migración: GLPI 12 queda en producción. Verificado: tickets creados desde la app
+(#1805, #1806) → avisos enviados por cron al primer intento y recibidos. GLPI 10 sigue en mantenimiento (marcha atrás, `scripts/rollback-corte.sh`).
+Pendiente post-migración: ver sección 6c (agentes FusionInventory, disco/RAM/VM, copia externa, tareas cron restantes, retirada de GLPI 10).

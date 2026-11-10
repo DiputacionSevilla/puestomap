@@ -19,7 +19,11 @@ notificaciones, recolector de correo y tareas `mailgate`/`queuednotification` (v
       documentos, usuarios, monitores, lugares y agentes).
 
 ## 2. Integración PuestoMap contra GLPI 12
-- [ ] Crear en el staging un token de API de solo lectura y probar `GLPI_URL=http://…/` con el sync en modo sombra
+- [x] (2026-11-10) Staging: usuario `puestomap_ro` (perfil Read-Only, id 328), token en `/opt/glpi12-migracion/secrets/puestomap_ro.token`
+      (600, root; GLPI 12 guarda `api_token` CIFRADO: generarlo con `User::getUniqueToken` + `GLPIKey`, no insertarlo en claro).
+      API OK sin App-Token (cliente 2); PUT denegado. Sync en sombra contra el staging: 97 altas / 54 actualizaciones /
+      2 conflictos (AYUPICMST, AYUHAC14), 34 lugares, 133 sin lugar = igual que contra GLPI 10; 2 errores parciales por revisar.
+- [ ] (histórico) Crear en el staging un token de API de solo lectura y probar `GLPI_URL=http://…/` con el sync en modo sombra
       (sesión, `Computer`, `Computer/{id}/Item_OperatingSystem`, `Computer/{id}/Computer_Item`, `Location`, `User`,
       `State`, `Manufacturer`, `ComputerModel`, PUT de ubicación si `GLPI_WRITEBACK_LOCATION`).
       Ya comprobado: `apirest.php/initSession` responde igual que en 10.

@@ -77,6 +77,10 @@ notificaciones, recolector de correo y tareas `mailgate`/`queuednotification` (v
   Staging devuelto a modo seguro: cron del contenedor apagado, tareas con su estado original, notificaciones desactivadas.
   Para repetir: `GLPI_CRONTAB_ENABLED=1 docker compose up -d --no-deps glpi` tras activar `use_notifications` y dejar activa solo esa tarea.
   Nota: en el contenedor root no puede borrar ficheros de otros usuarios en /tmp (rm da «Operation not permitted»): usar `|| true`.
+- Remitente (2026-11-10): con `informatica@` como remitente pero autenticando con `fjcarrion@` el proveedor ACEPTA y no ENTREGA (solo llegó la
+  prueba enviada como `fjcarrion@`). Solución elegida: usar el buzón propio `informatica@mairenadelalcor.es` como usuario SMTP (su clave está en
+  `.env` como `CORREO_PW`/`CORREO_US`). Staging ya configurado con él (`scripts/set-smtp.php`, clave cifrada); prueba enviada (cola `3EEEE80051`).
+  EN EL CORTE hay que REPETIR este paso: la copia final de GLPI 10 trae otra vez el usuario/clave antiguos (de `fjcarrion@`).
 - Para el corte: en GLPI 12 activar `GLPI_CRONTAB_ENABLED=1` y las tareas `queuednotification`/`mailgate`; apartar la cola antigua ANTES
   de activar el cron (si no se enviarían ~700 avisos de julio a noviembre); probar un ticket de ensayo con destinatarios controlados.
 
